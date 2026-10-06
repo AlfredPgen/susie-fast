@@ -317,12 +317,13 @@ optimize_prior_variance.default <- function(data, params, model, ser_stats,
   if (params$estimate_prior_method == "EM") {
     V <- em_update_prior_variance(data, params, model, alpha, moments, V_init)
   } else {
+    fast <- fast_ser_evaluator(data, params, model, ser_stats)
     V <- optimize_scalar_prior_variance(
       V_init = V_init,
       estimate_prior_method = params$estimate_prior_method,
-      neg_loglik_fn = function(V_param)
+      neg_loglik_fn = if (!is.null(fast)) fast$neg else function(V_param)
         neg_loglik(data, params, model, V_param, ser_stats),
-      loglik_fn = function(V_val)
+      loglik_fn = if (!is.null(fast)) fast$ll else function(V_val)
         loglik(data, params, model, V_val, ser_stats),
       optim_init = ser_stats$optim_init,
       optim_bounds = ser_stats$optim_bounds,

@@ -26,12 +26,28 @@ extern "C" SEXP _susieR_mr_ash_rss_cpp(SEXP bhat, SEXP shat, SEXP z, SEXP R, SEX
     return cpp11::as_sexp(mr_ash_rss_cpp(cpp11::as_cpp<cpp11::decay_t<const doubles&>>(bhat), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(shat), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(z), cpp11::as_cpp<cpp11::decay_t<const doubles_matrix<>&>>(R), cpp11::as_cpp<cpp11::decay_t<double>>(var_y), cpp11::as_cpp<cpp11::decay_t<int>>(n), cpp11::as_cpp<cpp11::decay_t<double>>(sigma2_e), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(s0), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(w0), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(mu1_init), cpp11::as_cpp<cpp11::decay_t<double>>(tol), cpp11::as_cpp<cpp11::decay_t<int>>(max_iter), cpp11::as_cpp<cpp11::decay_t<bool>>(update_w0), cpp11::as_cpp<cpp11::decay_t<bool>>(update_sigma), cpp11::as_cpp<cpp11::decay_t<bool>>(compute_ELBO), cpp11::as_cpp<cpp11::decay_t<bool>>(standardize)));
   END_CPP11
 }
+// susie_fast.cpp
+double ser_lbf_model_cpp(const doubles& h, const doubles& s, const logicals& zero, const doubles& logpw, double V);
+extern "C" SEXP _susieR_ser_lbf_model_cpp(SEXP h, SEXP s, SEXP zero, SEXP logpw, SEXP V) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(ser_lbf_model_cpp(cpp11::as_cpp<cpp11::decay_t<const doubles&>>(h), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(s), cpp11::as_cpp<cpp11::decay_t<const logicals&>>(zero), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(logpw), cpp11::as_cpp<cpp11::decay_t<double>>(V)));
+  END_CPP11
+}
+// susie_fast.cpp
+doubles scale_xtx_cpp(const doubles_matrix<>& XtX, const doubles& csd);
+extern "C" SEXP _susieR_scale_xtx_cpp(SEXP XtX, SEXP csd) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(scale_xtx_cpp(cpp11::as_cpp<cpp11::decay_t<const doubles_matrix<>&>>(XtX), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(csd)));
+  END_CPP11
+}
 
 extern "C" {
 static const R_CallMethodDef CallEntries[] = {
-    {"_susieR_caisa_cpp",      (DL_FUNC) &_susieR_caisa_cpp,      16},
-    {"_susieR_mr_ash_rss_cpp", (DL_FUNC) &_susieR_mr_ash_rss_cpp, 16},
-    {"_susieR_random_order",   (DL_FUNC) &_susieR_random_order,    2},
+    {"_susieR_caisa_cpp",         (DL_FUNC) &_susieR_caisa_cpp,         16},
+    {"_susieR_mr_ash_rss_cpp",    (DL_FUNC) &_susieR_mr_ash_rss_cpp,    16},
+    {"_susieR_random_order",      (DL_FUNC) &_susieR_random_order,       2},
+    {"_susieR_scale_xtx_cpp",     (DL_FUNC) &_susieR_scale_xtx_cpp,      2},
+    {"_susieR_ser_lbf_model_cpp", (DL_FUNC) &_susieR_ser_lbf_model_cpp,  5},
     {NULL, NULL, 0}
 };
 }

@@ -11,3 +11,11 @@ caisa_cpp <- function(X, w, sa2, pi_init, beta_init, r_init, sigma2, o_r, maxite
 mr_ash_rss_cpp <- function(bhat, shat, z, R, var_y, n, sigma2_e, s0, w0, mu1_init, tol, max_iter, update_w0, update_sigma, compute_ELBO, standardize) {
   .Call(`_susieR_mr_ash_rss_cpp`, bhat, shat, z, R, var_y, n, sigma2_e, s0, w0, mu1_init, tol, max_iter, update_w0, update_sigma, compute_ELBO, standardize)
 }
+
+ser_lbf_model_cpp <- function(h, s, zero, logpw, V) {
+  .Call(`_susieR_ser_lbf_model_cpp`, h, s, zero, logpw, V)
+}
+
+scale_xtx_cpp <- function(XtX, csd) {
+  .Call(`_susieR_scale_xtx_cpp`, XtX, csd)
+}

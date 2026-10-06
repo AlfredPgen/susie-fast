@@ -155,7 +155,7 @@ compute_residuals.ss <- function(data, params, model, l, ...) {
   # Below are SuSiE, SuSiE-ASH and SuSiE-SS
 
   # Remove lth effect from fitted values (scaled by slot weight)
-  XtXr_without_l <- model$XtXr - sw_l * compute_Rv(data, model$alpha[l, ] * model$mu[l, ])
+  XtXr_without_l <- model$XtXr - sw_l * fast_Rv_l(data, model, l, model$alpha[l, ] * model$mu[l, ])
 
   # Compute residuals (ash subtracts unmappable effect X'X*theta).
   is_ash <- params$unmappable_effects %in% c("ash", "ash_filter_archived")
@@ -302,6 +302,8 @@ compute_kl.ss <- function(data, params, model, l) {
 # Expected Squared Residuals
 #' @keywords internal
 get_ER2.ss <- function(data, model) {
+  memo <- fast_er2_lookup(model)
+  if (!is.null(memo)) return(memo)
   B       <- model$alpha * model$mu
   postb2  <- model$alpha * model$mu2 # Posterior second moment.
   # Slot-weight correction: E[||y - sum_l c_l X beta^(l)||^2] under Bern(chat_l)
@@ -310,11 +312,22 @@ get_ER2.ss <- function(data, model) {
   # When slot_weights is NULL (all weights = 1), reduces to the standard formula.
   sw <- if (!is.null(model$slot_weights)) model$slot_weights else rep(1, nrow(B))
   betabar <- colSums(sw * B)                                      # c_hat-weighted mean
-  per_slot_XB2 <- rowSums(compute_BR(data, B) * B)                # bbar_l' R bbar_l
   per_slot_Eb2 <- as.vector(postb2 %*% model$predictor_weights)   # diag(X'X)' (alpha*mu2)_l
 
-  return(data$yty - 2 * sum(betabar * data$Xty) + sum(betabar * compute_Rv(data, betabar)) -
-           sum(sw^2 * per_slot_XB2) + sum(sw * per_slot_Eb2))
+  # Full fast mode: the R bbar_l are the cached per-effect products and
+  # R betabar = sum_l c_l R bbar_l, so no further p x p products are needed.
+  RB <- fast_all_products(model, B)
+  if (!is.null(RB)) {
+    per_slot_XB2 <- rowSums(RB * B)
+    R_betabar    <- colSums(sw * RB)
+  } else {
+    per_slot_XB2 <- rowSums(compute_BR(data, B) * B)              # bbar_l' R bbar_l
+    R_betabar    <- compute_Rv(data, betabar)
+  }
+
+  fast_er2_store(model,
+    data$yty - 2 * sum(betabar * data$Xty) + sum(betabar * R_betabar) -
+      sum(sw^2 * per_slot_XB2) + sum(sw * per_slot_Eb2))
 }
 
 # Expected log-likelihood for the sufficient-stats path.  Without inflation,
@@ -437,7 +450,7 @@ update_fitted_values.ss <- function(data, params, model, l, ...) {
     model$XtXr <- as.vector(compute_Rv(data, colSums(sw * model$alpha * model$mu) + model$theta))
   } else {
     # Standard SuSiE and SuSiE-ash: sparse component only
-    model$XtXr <- model$fitted_without_l + sw_l * as.vector(compute_Rv(data, model$alpha[l, ] * model$mu[l, ]))
+    model$XtXr <- model$fitted_without_l + sw_l * as.vector(fast_Rv_l(data, model, l, model$alpha[l, ] * model$mu[l, ]))
   }
   return(model)
 }

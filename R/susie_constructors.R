@@ -579,7 +579,7 @@ sufficient_stats_constructor <- function(Xty, yty, n,
       dXtX <- diag(XtX)
       csd <- sqrt(dXtX / (n - 1))
       csd[csd == 0] <- 1
-      XtX <- t((1 / csd) * XtX) / csd
+      XtX <- fast_scale_xtx(XtX, csd)
       Xty <- Xty / csd
     } else {
       csd <- rep(1, length = p)

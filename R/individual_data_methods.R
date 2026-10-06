@@ -135,7 +135,7 @@ compute_residuals.individual <- function(data, params, model, l, ...) {
   }
 
   # Remove lth effect from fitted values (scaled by slot weight)
-  Xr_without_l <- model$Xr - sw_l * compute_Xb(data$X, model$alpha[l, ] * model$mu[l, ])
+  Xr_without_l <- model$Xr - sw_l * fast_Xb_l(data, model, l, model$alpha[l, ] * model$mu[l, ])
 
   # Compute residuals
   if (params$unmappable_effects %in% c("ash", "ash_filter_archived")) {
@@ -203,7 +203,7 @@ SER_posterior_e_loglik.individual <- function(data, params, model, l) {
 
   return(-0.5 * data$n * log(2 * pi * model$sigma2) -
            0.5 / model$sigma2 * (sum(model$raw_residuals * model$raw_residuals)
-                                 - 2 * sum(model$raw_residuals * compute_Xb(data$X, Eb)) +
+                                 - 2 * sum(model$raw_residuals * fast_Xb_l(data, model, l, Eb)) +
                                    sum(model$predictor_weights * Eb2)))
 }
 
@@ -280,7 +280,12 @@ compute_kl.individual <- function(data, params, model, l) {
 # Expected squared residuals
 #' @keywords internal
 get_ER2.individual <- function(data, model) {
-  Xr_L <- compute_MXt(model$alpha * model$mu, data$X)
+  memo <- fast_er2_lookup(model)
+  if (!is.null(memo)) return(memo)
+  B    <- model$alpha * model$mu
+  # Full fast mode: the rows X bbar_l are the cached per-effect products.
+  Xr_L <- fast_all_products(model, B)
+  if (is.null(Xr_L)) Xr_L <- compute_MXt(B, data$X)
   postb2 <- model$alpha * model$mu2
   # For ash, subtract theta contribution from residuals
   y_adj <- if (!is.null(model$X_theta)) data$y - model$X_theta else data$y
@@ -290,7 +295,8 @@ get_ER2.individual <- function(data, model) {
   sw <- if (!is.null(model$slot_weights)) model$slot_weights else rep(1, nrow(model$alpha))
   per_slot_Eb2 <- as.vector(postb2 %*% model$predictor_weights)  # L-vector
   per_slot_Xb2 <- rowSums(Xr_L^2)                                # L-vector
-  return(sum((y_adj - model$Xr)^2) + sum(sw * per_slot_Eb2 - sw^2 * per_slot_Xb2))
+  return(fast_er2_store(model,
+    sum((y_adj - model$Xr)^2) + sum(sw * per_slot_Eb2 - sw^2 * per_slot_Xb2)))
 }
 
 # Expected log-likelihood
@@ -379,7 +385,7 @@ update_fitted_values.individual <- function(data, params, model, l, ...) {
   }
 
   sw_l <- get_slot_weight(model, l)
-  model$Xr <- model$fitted_without_l + sw_l * compute_Xb(data$X, model$alpha[l, ] * model$mu[l, ])
+  model$Xr <- model$fitted_without_l + sw_l * fast_Xb_l(data, model, l, model$alpha[l, ] * model$mu[l, ])
 
   return(model)
 }
