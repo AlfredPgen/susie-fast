@@ -20,3 +20,5 @@
 ^pixi\.lock$
 ^\.pixi/.*
 ^\.github$
+^FAST\.md$
+^fast$
