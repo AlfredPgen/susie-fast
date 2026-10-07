@@ -62,6 +62,7 @@ susie_workhorse <- function(data, params) {
   }
 
   # Initialize model object
+  fast_products <- fast_products_new(data)
   model <- ibss_initialize(data, params)
 
   # Initialize ELBO & tracking
@@ -73,7 +74,7 @@ susie_workhorse <- function(data, params) {
   model$runtime <- list(
     prev_elbo  = -Inf,
     prev_alpha = model$alpha,
-    fast_cache = fast_cache_new(data, params, nrow(model$alpha))
+    fast_cache = fast_products_attach(fast_cache_new(data, params, nrow(model$alpha)), fast_products)
   )
 
   # Main IBSS iteration loop

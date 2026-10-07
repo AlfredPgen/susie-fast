@@ -85,7 +85,7 @@ fast_effect_product <- function(data, model, l, b, compute, out_len, finite) {
 #' @keywords internal
 fast_Rv_l <- function(data, model, l, b)
   fast_effect_product(data, model, l, b,
-    compute = function(v) compute_Rv(data, v),
+    compute = function(v) fast_Rv(model, data, v),
     out_len = length(b),
     finite  = function() {
       M <- if (!is.null(data$X)) data$X else data$XtX
@@ -95,7 +95,7 @@ fast_Rv_l <- function(data, model, l, b)
 #' @keywords internal
 fast_Xb_l <- function(data, model, l, b)
   fast_effect_product(data, model, l, b,
-    compute = function(v) compute_Xb(data$X, v),
+    compute = function(v) fast_Xb(model, data$X, v),
     out_len = nrow(data$X),
     finite  = function() {
       csd <- attr(data$X, "scaled:scale")

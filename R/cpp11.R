@@ -8,6 +8,26 @@ caisa_cpp <- function(X, w, sa2, pi_init, beta_init, r_init, sigma2, o_r, maxite
   .Call(`_susieR_caisa_cpp`, X, w, sa2, pi_init, beta_init, r_init, sigma2, o_r, maxiter, miniter, convtol, epstol, method_q, updatepi, updatesigma, verbose)
 }
 
+fast_mayhave_cpp <- function(x) {
+  .Call(`_susieR_fast_mayhave_cpp`, x)
+}
+
+fast_same_cpp <- function(a, b) {
+  .Call(`_susieR_fast_same_cpp`, a, b)
+}
+
+fast_symmetric_cpp <- function(A) {
+  .Call(`_susieR_fast_symmetric_cpp`, A)
+}
+
+fast_max_threads_cpp <- function() {
+  .Call(`_susieR_fast_max_threads_cpp`)
+}
+
+fast_gemv_cpp <- function(A, x, trans, ref, nthreads) {
+  .Call(`_susieR_fast_gemv_cpp`, A, x, trans, ref, nthreads)
+}
+
 mr_ash_rss_cpp <- function(bhat, shat, z, R, var_y, n, sigma2_e, s0, w0, mu1_init, tol, max_iter, update_w0, update_sigma, compute_ELBO, standardize) {
   .Call(`_susieR_mr_ash_rss_cpp`, bhat, shat, z, R, var_y, n, sigma2_e, s0, w0, mu1_init, tol, max_iter, update_w0, update_sigma, compute_ELBO, standardize)
 }

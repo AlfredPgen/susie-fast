@@ -79,7 +79,7 @@ initialize_susie_model.individual <- function(data, params, var_y, ...) {
 # Initialize fitted values
 #' @keywords internal
 initialize_fitted.individual <- function(data, mat_init) {
-  return(list(Xr = compute_Xb(data$X, colSums(mat_init$alpha * mat_init$mu))))
+  return(list(Xr = fast_init_Xb(data, colSums(mat_init$alpha * mat_init$mu))))
 }
 
 # Validate prior variance
@@ -144,7 +144,7 @@ compute_residuals.individual <- function(data, params, model, l, ...) {
   } else {
     R <- data$y - Xr_without_l
   }
-  XtR <- compute_Xty(data$X, R)
+  XtR <- fast_Xty(model, data$X, R)
 
   # Store unified residuals in model
   model$residuals         <- XtR
@@ -380,7 +380,7 @@ update_fitted_values.individual <- function(data, params, model, l, ...) {
     # because fitted_without_l is not maintained on the inf path.
     sw <- if (!is.null(model$slot_weights)) model$slot_weights else rep(1, nrow(model$alpha))
     b_total <- colSums(sw * model$alpha * model$mu) + model$theta
-    model$Xr <- as.vector(compute_Xb(data$X, b_total))
+    model$Xr <- as.vector(fast_Xb(model, data$X, b_total))
     return(model)
   }
 
@@ -436,7 +436,7 @@ update_derived_quantities.individual <- function(data, params, model) {
                                            (data$VtXty / omega_res$omega_var))
 
     b <- colSums(model$alpha * model$mu)
-    model$Xr <- as.vector(compute_Xb(data$X, b + model$theta))
+    model$Xr <- as.vector(fast_Xb(model, data$X, b + model$theta))
     return(model)
   }
   if (params$unmappable_effects %in% c("ash", "ash_filter_archived")) {
@@ -446,7 +446,7 @@ update_derived_quantities.individual <- function(data, params, model) {
     # with the c_hat-weighted Xr from ibss_fit + update_c_hat.
     sw <- if (!is.null(model$slot_weights)) model$slot_weights else rep(1, nrow(model$alpha))
     b <- colSums(sw * model$alpha * model$mu)
-    model$Xr <- as.vector(compute_Xb(data$X, b))
+    model$Xr <- as.vector(fast_Xb(model, data$X, b))
     return(model)
   }
   return(update_derived_quantities.default(data, params, model))
