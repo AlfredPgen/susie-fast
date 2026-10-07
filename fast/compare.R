@@ -20,9 +20,11 @@ maxdiff <- function(a, b) {
   if (identical(a, b)) 0 else Inf
 }
 cat(sprintf("%-16s %-9s %-10s %-10s %-10s %s\n", "case", "identical", "max_rel", "pip", "elbo", "sets/niter"))
-for (nm in names(A)) {
+common <- intersect(names(A), names(B))
+if (length(setdiff(names(B), names(A))))
+  cat("# only in the second file:", setdiff(names(B), names(A)), "\n")
+for (nm in common) {
   a <- A[[nm]]$fit; b <- B[[nm]]$fit
-  if (is.null(b)) { cat(nm, "missing\n"); next }
   if (inherits(a, "err") || inherits(b, "err")) {
     cat(sprintf("%-16s %s\n", nm, if (identical(a, b)) "both error (same)" else "ERROR MISMATCH")); next }
   strip_env <- function(x) { x[vapply(x, is.environment, TRUE)] <- NULL; x }
