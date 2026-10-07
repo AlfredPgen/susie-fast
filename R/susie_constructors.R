@@ -1094,6 +1094,10 @@ summary_stats_constructor <- function(z = NULL, R = NULL, X = NULL,
     # Sample size provided - use PVE-adjusted z-scores
     # var_y and shat provided - effects on original scale (R path only)
     XtX <- fast_orig_scale_xtx(R, working$XtXdiag)
+    if (is.null(XtX)) {
+      XtX <- t(R * sqrt(working$XtXdiag)) * sqrt(working$XtXdiag)
+      XtX <- (XtX + t(XtX)) / 2
+    }
     Xty <- working$Xty
     yty <- working$yty
   } else {

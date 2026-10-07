@@ -197,3 +197,57 @@ test_that("fits through the constructors match upstream", {
   X <- d$X; X[, 3] <- 1
   expect_same_modes(function() susie(X, d$y))
 })
+
+test_that("original-scale XtX with a negative diagonal warns as upstream", {
+  # var_y < 0 or 1 < n < 2 makes working$XtXdiag negative; upstream's
+  # t(R * sqrt(working$XtXdiag)) * sqrt(working$XtXdiag) then warns twice,
+  # with that call.
+  d <- con_test_data()
+  ssc <- function(...) susieR:::summary_stats_constructor(...)
+  run_calls <- function(fun) {
+    conds <- list()
+    val <- withCallingHandlers(
+      tryCatch(fun(), error = function(e) paste("E:", conditionMessage(e))),
+      message = function(m) {
+        conds[[length(conds) + 1]] <<- c("M", conditionMessage(m))
+        invokeRestart("muffleMessage")
+      },
+      warning = function(w) {
+        conds[[length(conds) + 1]] <<- c("W", conditionMessage(w),
+                                         paste(deparse(conditionCall(w)), collapse = " "))
+        invokeRestart("muffleWarning")
+      })
+    list(val = val, conds = conds)
+  }
+  calls <- list(
+    function() ssc(bhat = d$uni$betahat, shat = d$uni$sebetahat, R = d$R, n = d$n, var_y = -1),
+    function() ssc(bhat = d$uni$betahat, shat = d$uni$sebetahat, R = d$R, n = 1.5, var_y = 1),
+    function() ssc(bhat = d$uni$betahat, shat = d$uni$sebetahat, R = d$R, n = d$n, var_y = -Inf),
+    function() ssc(bhat = d$uni$betahat, shat = d$uni$sebetahat, R = d$R, n = d$n, var_y = NA_real_),
+    function() susie_rss(bhat = d$uni$betahat, shat = d$uni$sebetahat, R = d$R, n = d$n, var_y = -1),
+    function() susie_rss(bhat = d$uni$betahat, shat = d$uni$sebetahat, R = d$R, n = 1.5, var_y = 1))
+  old <- options(susieR.fast = "off")
+  on.exit(options(old))
+  for (k in seq_along(calls)) {
+    options(susieR.fast = "off")
+    ref <- run_calls(calls[[k]])
+    if (k <= 2) {
+      sq <- Filter(function(x) x[1] == "W" && x[3] == "sqrt(working$XtXdiag)", ref$conds)
+      expect_length(sq, 2)
+    }
+    for (mode in c("exact", "full")) {
+      options(susieR.fast = mode)
+      r <- run_calls(calls[[k]])
+      if (inherits(r$val, "susie") && mode == "full") {
+        r$val$elbo <- NULL
+        ref2 <- ref; ref2$val$elbo <- NULL
+        expect_identical(r, ref2)
+      } else {
+        expect_identical(r, ref)
+      }
+    }
+  }
+  # The fast helper declines such inputs, so the caller runs upstream's code.
+  expect_null(susieR:::fast_orig_scale_xtx(d$R, c(-1, rep(1, ncol(d$R) - 1))))
+  expect_null(susieR:::fast_orig_scale_xtx(d$R, c(-Inf, rep(1, ncol(d$R) - 1))))
+})

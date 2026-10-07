@@ -64,16 +64,18 @@ fast_scale_xtx_sym_kernel <- function(XtX, csd) {
 
 # Original-scale XtX: same values and attributes as
 # XtX <- t(R * sqrt(XtXdiag)) * sqrt(XtXdiag); (XtX + t(XtX)) / 2.
+# Returns NULL when the caller must run that expression itself. Upstream
+# evaluates sqrt(XtXdiag) twice, so a negative entry (var_y < 0, 1 < n < 2)
+# warns twice; such inputs take the upstream expression. sqrt() of NA, NaN,
+# +Inf and -0 does not warn, so the single sqrt below cannot warn.
 #' @keywords internal
 fast_orig_scale_xtx <- function(R, XtXdiag) {
   if (fast_mode() == "off" || !is.matrix(R) || !is.double(R) ||
       is.object(R) || nrow(R) != ncol(R) || length(XtXdiag) != nrow(R) ||
       !is.double(XtXdiag) || !fast_plain_attributes(R) ||
       !all(names(attributes(XtXdiag)) == "names") ||
-      !fast_constructors_ok()) {
-    XtX <- t(R * sqrt(XtXdiag)) * sqrt(XtXdiag)
-    return((XtX + t(XtX)) / 2)
-  }
+      any(XtXdiag < 0, na.rm = TRUE) || !fast_constructors_ok())
+    return(NULL)
   fast_orig_scale_kernel(R, sqrt(XtXdiag))
 }
 
@@ -88,6 +90,8 @@ fast_orig_scale_kernel <- function(R, s) {
 
 # Indices of the columns of X with var() equal to 0 or NA, as
 # which(col_vars == 0 | is.na(col_vars)) with col_vars <- apply(X, 2, var).
+# Unlike that which(), the screened indices carry no names: the caller uses
+# them only through length() and paste(), whose output is the same.
 #' @keywords internal
 fast_const_cols <- function(X) {
   if (fast_mode() == "off" || !is.matrix(X) || !is.double(X) ||
