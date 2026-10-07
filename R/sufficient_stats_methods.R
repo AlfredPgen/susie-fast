@@ -230,6 +230,8 @@ compute_ser_statistics.ss <- function(data, params, model, l, ...) {
 # Posterior expected log-likelihood for a single effect regression
 #' @keywords internal
 SER_posterior_e_loglik.ss <- function(data, params, model, l) {
+  e <- fast_ser_e_loglik_ss(data, params, model, l)
+  if (!is.null(e)) return(e)
   Eb  <- model$alpha[l, ] * model$mu[l, ]
   Eb2 <- model$alpha[l, ] * model$mu2[l, ]
 
@@ -248,6 +250,8 @@ SER_posterior_e_loglik.ss <- function(data, params, model, l) {
 # Calculate posterior moments for single effect regression
 #' @keywords internal
 calculate_posterior_moments.ss <- function(data, params, model, V, l, ...) {
+  fm <- fast_ser_moments_ss(data, params, model, V, l)
+  if (!is.null(fm)) return(fm)
   if (params$use_NIG) {
     # NIG posterior moments
     if (V <= 0) {
@@ -377,6 +381,8 @@ compute_augmented_eloglik_ss <- function(data, model) {
 #' @importFrom stats dnorm
 #' @keywords internal
 loglik.ss <- function(data, params, model, V, ser_stats, l = NULL, ...) {
+  fm <- fast_ser_loglik_ss(data, params, model, V, ser_stats, l)
+  if (!is.null(fm)) return(fm)
   if (params$use_NIG) {
     # NIG log Bayes factors
     nig_ss <- get_nig_sufficient_stats(data, model)

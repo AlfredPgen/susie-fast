@@ -8,6 +8,26 @@ caisa_cpp <- function(X, w, sa2, pi_init, beta_init, r_init, sigma2, o_r, maxite
   .Call(`_susieR_caisa_cpp`, X, w, sa2, pi_init, beta_init, r_init, sigma2, o_r, maxiter, miniter, convtol, epstol, method_q, updatepi, updatesigma, verbose)
 }
 
+ser_s_table_cpp <- function(s, zero, cap) {
+  .Call(`_susieR_ser_s_table_cpp`, s, zero, cap)
+}
+
+ser_lbf_model_tab_cpp <- function(h, u, sidx, logpw, V) {
+  .Call(`_susieR_ser_lbf_model_tab_cpp`, h, u, sidx, logpw, V)
+}
+
+ser_lbf_l_cpp <- function(betahat, shat2, pi, V) {
+  .Call(`_susieR_ser_lbf_l_cpp`, betahat, shat2, pi, V)
+}
+
+ser_moments_cpp <- function(r, pw, rv, V) {
+  .Call(`_susieR_ser_moments_cpp`, r, pw, rv, V)
+}
+
+ser_e_loglik_cpp <- function(alpha, mu, mu2, r, pw, rv) {
+  .Call(`_susieR_ser_e_loglik_cpp`, alpha, mu, mu2, r, pw, rv)
+}
+
 mr_ash_rss_cpp <- function(bhat, shat, z, R, var_y, n, sigma2_e, s0, w0, mu1_init, tol, max_iter, update_w0, update_sigma, compute_ELBO, standardize) {
   .Call(`_susieR_mr_ash_rss_cpp`, bhat, shat, z, R, var_y, n, sigma2_e, s0, w0, mu1_init, tol, max_iter, update_w0, update_sigma, compute_ELBO, standardize)
 }

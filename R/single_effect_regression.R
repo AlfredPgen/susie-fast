@@ -356,7 +356,7 @@ single_effect_update <- function(data, params, model, l) {
   model <- compute_residuals(data, params, model, l)
 
   # Run Single Effect Regression
-  model <- single_effect_regression(data, params, model, l)
+  model <- fast_single_effect_regression(data, params, model, l)
 
   # Update fitted values
   model <- update_fitted_values(data, params, model, l)

@@ -19,6 +19,41 @@ extern "C" SEXP _susieR_caisa_cpp(SEXP X, SEXP w, SEXP sa2, SEXP pi_init, SEXP b
     return cpp11::as_sexp(caisa_cpp(cpp11::as_cpp<cpp11::decay_t<const doubles_matrix<>&>>(X), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(w), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(sa2), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(pi_init), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(beta_init), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(r_init), cpp11::as_cpp<cpp11::decay_t<double>>(sigma2), cpp11::as_cpp<cpp11::decay_t<const integers&>>(o_r), cpp11::as_cpp<cpp11::decay_t<int>>(maxiter), cpp11::as_cpp<cpp11::decay_t<int>>(miniter), cpp11::as_cpp<cpp11::decay_t<double>>(convtol), cpp11::as_cpp<cpp11::decay_t<double>>(epstol), cpp11::as_cpp<cpp11::decay_t<std::string>>(method_q), cpp11::as_cpp<cpp11::decay_t<bool>>(updatepi), cpp11::as_cpp<cpp11::decay_t<bool>>(updatesigma), cpp11::as_cpp<cpp11::decay_t<bool>>(verbose)));
   END_CPP11
 }
+// fast_ser.cpp
+SEXP ser_s_table_cpp(const doubles& s, const logicals& zero, int cap);
+extern "C" SEXP _susieR_ser_s_table_cpp(SEXP s, SEXP zero, SEXP cap) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(ser_s_table_cpp(cpp11::as_cpp<cpp11::decay_t<const doubles&>>(s), cpp11::as_cpp<cpp11::decay_t<const logicals&>>(zero), cpp11::as_cpp<cpp11::decay_t<int>>(cap)));
+  END_CPP11
+}
+// fast_ser.cpp
+double ser_lbf_model_tab_cpp(const doubles& h, const doubles& u, const integers& sidx, const doubles& logpw, double V);
+extern "C" SEXP _susieR_ser_lbf_model_tab_cpp(SEXP h, SEXP u, SEXP sidx, SEXP logpw, SEXP V) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(ser_lbf_model_tab_cpp(cpp11::as_cpp<cpp11::decay_t<const doubles&>>(h), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(u), cpp11::as_cpp<cpp11::decay_t<const integers&>>(sidx), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(logpw), cpp11::as_cpp<cpp11::decay_t<double>>(V)));
+  END_CPP11
+}
+// fast_ser.cpp
+SEXP ser_lbf_l_cpp(const doubles& betahat, const doubles& shat2, const doubles& pi, double V);
+extern "C" SEXP _susieR_ser_lbf_l_cpp(SEXP betahat, SEXP shat2, SEXP pi, SEXP V) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(ser_lbf_l_cpp(cpp11::as_cpp<cpp11::decay_t<const doubles&>>(betahat), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(shat2), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(pi), cpp11::as_cpp<cpp11::decay_t<double>>(V)));
+  END_CPP11
+}
+// fast_ser.cpp
+SEXP ser_moments_cpp(const doubles& r, const doubles& pw, double rv, double V);
+extern "C" SEXP _susieR_ser_moments_cpp(SEXP r, SEXP pw, SEXP rv, SEXP V) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(ser_moments_cpp(cpp11::as_cpp<cpp11::decay_t<const doubles&>>(r), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(pw), cpp11::as_cpp<cpp11::decay_t<double>>(rv), cpp11::as_cpp<cpp11::decay_t<double>>(V)));
+  END_CPP11
+}
+// fast_ser.cpp
+double ser_e_loglik_cpp(const doubles& alpha, const doubles& mu, const doubles& mu2, const doubles& r, const doubles& pw, double rv);
+extern "C" SEXP _susieR_ser_e_loglik_cpp(SEXP alpha, SEXP mu, SEXP mu2, SEXP r, SEXP pw, SEXP rv) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(ser_e_loglik_cpp(cpp11::as_cpp<cpp11::decay_t<const doubles&>>(alpha), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(mu), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(mu2), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(r), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(pw), cpp11::as_cpp<cpp11::decay_t<double>>(rv)));
+  END_CPP11
+}
 // mr_ash_rss.cpp
 writable::list mr_ash_rss_cpp(const doubles& bhat, const doubles& shat, const doubles& z, const doubles_matrix<>& R, double var_y, int n, double sigma2_e, const doubles& s0, const doubles& w0, const doubles& mu1_init, double tol, int max_iter, bool update_w0, bool update_sigma, bool compute_ELBO, bool standardize);
 extern "C" SEXP _susieR_mr_ash_rss_cpp(SEXP bhat, SEXP shat, SEXP z, SEXP R, SEXP var_y, SEXP n, SEXP sigma2_e, SEXP s0, SEXP w0, SEXP mu1_init, SEXP tol, SEXP max_iter, SEXP update_w0, SEXP update_sigma, SEXP compute_ELBO, SEXP standardize) {
@@ -43,11 +78,16 @@ extern "C" SEXP _susieR_scale_xtx_cpp(SEXP XtX, SEXP csd) {
 
 extern "C" {
 static const R_CallMethodDef CallEntries[] = {
-    {"_susieR_caisa_cpp",         (DL_FUNC) &_susieR_caisa_cpp,         16},
-    {"_susieR_mr_ash_rss_cpp",    (DL_FUNC) &_susieR_mr_ash_rss_cpp,    16},
-    {"_susieR_random_order",      (DL_FUNC) &_susieR_random_order,       2},
-    {"_susieR_scale_xtx_cpp",     (DL_FUNC) &_susieR_scale_xtx_cpp,      2},
-    {"_susieR_ser_lbf_model_cpp", (DL_FUNC) &_susieR_ser_lbf_model_cpp,  5},
+    {"_susieR_caisa_cpp",             (DL_FUNC) &_susieR_caisa_cpp,             16},
+    {"_susieR_mr_ash_rss_cpp",        (DL_FUNC) &_susieR_mr_ash_rss_cpp,        16},
+    {"_susieR_random_order",          (DL_FUNC) &_susieR_random_order,           2},
+    {"_susieR_scale_xtx_cpp",         (DL_FUNC) &_susieR_scale_xtx_cpp,          2},
+    {"_susieR_ser_e_loglik_cpp",      (DL_FUNC) &_susieR_ser_e_loglik_cpp,       6},
+    {"_susieR_ser_lbf_l_cpp",         (DL_FUNC) &_susieR_ser_lbf_l_cpp,          4},
+    {"_susieR_ser_lbf_model_cpp",     (DL_FUNC) &_susieR_ser_lbf_model_cpp,      5},
+    {"_susieR_ser_lbf_model_tab_cpp", (DL_FUNC) &_susieR_ser_lbf_model_tab_cpp,  5},
+    {"_susieR_ser_moments_cpp",       (DL_FUNC) &_susieR_ser_moments_cpp,        4},
+    {"_susieR_ser_s_table_cpp",       (DL_FUNC) &_susieR_ser_s_table_cpp,        3},
     {NULL, NULL, 0}
 };
 }

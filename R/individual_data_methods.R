@@ -144,7 +144,7 @@ compute_residuals.individual <- function(data, params, model, l, ...) {
   } else {
     R <- data$y - Xr_without_l
   }
-  XtR <- compute_Xty(data$X, R)
+  XtR <- fast_Xty(data, model, R)
 
   # Store unified residuals in model
   model$residuals         <- XtR
