@@ -8,6 +8,22 @@ caisa_cpp <- function(X, w, sa2, pi_init, beta_init, r_init, sigma2, o_r, maxite
   .Call(`_susieR_caisa_cpp`, X, w, sa2, pi_init, beta_init, r_init, sigma2, o_r, maxiter, miniter, convtol, epstol, method_q, updatepi, updatesigma, verbose)
 }
 
+xtx_check_cpp <- function(XtX) {
+  .Call(`_susieR_xtx_check_cpp`, XtX)
+}
+
+scale_xtx_sym_cpp <- function(XtX, csd) {
+  .Call(`_susieR_scale_xtx_sym_cpp`, XtX, csd)
+}
+
+orig_scale_xtx_cpp <- function(R, s) {
+  .Call(`_susieR_orig_scale_xtx_cpp`, R, s)
+}
+
+const_col_screen_cpp <- function(X) {
+  .Call(`_susieR_const_col_screen_cpp`, X)
+}
+
 mr_ash_rss_cpp <- function(bhat, shat, z, R, var_y, n, sigma2_e, s0, w0, mu1_init, tol, max_iter, update_w0, update_sigma, compute_ELBO, standardize) {
   .Call(`_susieR_mr_ash_rss_cpp`, bhat, shat, z, R, var_y, n, sigma2_e, s0, w0, mu1_init, tol, max_iter, update_w0, update_sigma, compute_ELBO, standardize)
 }

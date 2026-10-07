@@ -248,8 +248,7 @@ individual_data_constructor <- function(X, y, L = min(10, ncol(X)),
 
   # Constant column check for regular matrix
   if (is.null(attr(X, "matrix.type")) || attr(X, "matrix.type") != "tfmatrix") {
-    col_vars <- apply(X, 2, var)
-    const_cols <- which(col_vars == 0 | is.na(col_vars))
+    const_cols <- fast_const_cols(X)
     if (length(const_cols) > 0) {
       warning_message(sprintf("X contains %d constant columns (first few cols: %s).",
                  length(const_cols), paste(head(const_cols, 10), collapse = ", ")))
@@ -476,8 +475,10 @@ sufficient_stats_constructor <- function(Xty, yty, n,
     }
 
     # Ensure XtX is symmetric
-    if (!is_symmetric_matrix(XtX)) {
+    fl <- fast_xtx_check(XtX)
+    if (!(if (is.null(fl)) is_symmetric_matrix(XtX) else fl$sym)) {
       XtX <- symmetrize_warned(XtX, "XtX")
+      fl <- NULL
     }
 
     # Apply MAF filter if provided
@@ -487,13 +488,14 @@ sufficient_stats_constructor <- function(Xty, yty, n,
       }
       id <- which(maf > maf_thresh)
       XtX <- XtX[id, id]
+      fl <- NULL
       Xty <- Xty[id]
       if (!is.null(prior_weights))
         prior_weights <- prior_weights[id]
     }
 
     # Additional validation
-    if (anyNA(XtX)) {
+    if (is.null(fl) && anyNA(XtX)) {
       stop("Input XtX matrix contains NAs.")
     }
 
@@ -579,7 +581,7 @@ sufficient_stats_constructor <- function(Xty, yty, n,
       dXtX <- diag(XtX)
       csd <- sqrt(dXtX / (n - 1))
       csd[csd == 0] <- 1
-      XtX <- fast_scale_xtx(XtX, csd)
+      XtX <- fast_scale_xtx_sym(XtX, csd, fl)
       Xty <- Xty / csd
     } else {
       csd <- rep(1, length = p)
@@ -1091,8 +1093,7 @@ summary_stats_constructor <- function(z = NULL, R = NULL, X = NULL,
   } else if (working$path == "original_scale") {
     # Sample size provided - use PVE-adjusted z-scores
     # var_y and shat provided - effects on original scale (R path only)
-    XtX <- t(R * sqrt(working$XtXdiag)) * sqrt(working$XtXdiag)
-    XtX <- (XtX + t(XtX)) / 2
+    XtX <- fast_orig_scale_xtx(R, working$XtXdiag)
     Xty <- working$Xty
     yty <- working$yty
   } else {

@@ -19,6 +19,34 @@ extern "C" SEXP _susieR_caisa_cpp(SEXP X, SEXP w, SEXP sa2, SEXP pi_init, SEXP b
     return cpp11::as_sexp(caisa_cpp(cpp11::as_cpp<cpp11::decay_t<const doubles_matrix<>&>>(X), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(w), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(sa2), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(pi_init), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(beta_init), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(r_init), cpp11::as_cpp<cpp11::decay_t<double>>(sigma2), cpp11::as_cpp<cpp11::decay_t<const integers&>>(o_r), cpp11::as_cpp<cpp11::decay_t<int>>(maxiter), cpp11::as_cpp<cpp11::decay_t<int>>(miniter), cpp11::as_cpp<cpp11::decay_t<double>>(convtol), cpp11::as_cpp<cpp11::decay_t<double>>(epstol), cpp11::as_cpp<cpp11::decay_t<std::string>>(method_q), cpp11::as_cpp<cpp11::decay_t<bool>>(updatepi), cpp11::as_cpp<cpp11::decay_t<bool>>(updatesigma), cpp11::as_cpp<cpp11::decay_t<bool>>(verbose)));
   END_CPP11
 }
+// fast_constructors.cpp
+int xtx_check_cpp(const doubles_matrix<>& XtX);
+extern "C" SEXP _susieR_xtx_check_cpp(SEXP XtX) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(xtx_check_cpp(cpp11::as_cpp<cpp11::decay_t<const doubles_matrix<>&>>(XtX)));
+  END_CPP11
+}
+// fast_constructors.cpp
+doubles scale_xtx_sym_cpp(const doubles_matrix<>& XtX, const doubles& csd);
+extern "C" SEXP _susieR_scale_xtx_sym_cpp(SEXP XtX, SEXP csd) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(scale_xtx_sym_cpp(cpp11::as_cpp<cpp11::decay_t<const doubles_matrix<>&>>(XtX), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(csd)));
+  END_CPP11
+}
+// fast_constructors.cpp
+doubles orig_scale_xtx_cpp(const doubles_matrix<>& R, const doubles& s);
+extern "C" SEXP _susieR_orig_scale_xtx_cpp(SEXP R, SEXP s) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(orig_scale_xtx_cpp(cpp11::as_cpp<cpp11::decay_t<const doubles_matrix<>&>>(R), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(s)));
+  END_CPP11
+}
+// fast_constructors.cpp
+logicals const_col_screen_cpp(const doubles_matrix<>& X);
+extern "C" SEXP _susieR_const_col_screen_cpp(SEXP X) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(const_col_screen_cpp(cpp11::as_cpp<cpp11::decay_t<const doubles_matrix<>&>>(X)));
+  END_CPP11
+}
 // mr_ash_rss.cpp
 writable::list mr_ash_rss_cpp(const doubles& bhat, const doubles& shat, const doubles& z, const doubles_matrix<>& R, double var_y, int n, double sigma2_e, const doubles& s0, const doubles& w0, const doubles& mu1_init, double tol, int max_iter, bool update_w0, bool update_sigma, bool compute_ELBO, bool standardize);
 extern "C" SEXP _susieR_mr_ash_rss_cpp(SEXP bhat, SEXP shat, SEXP z, SEXP R, SEXP var_y, SEXP n, SEXP sigma2_e, SEXP s0, SEXP w0, SEXP mu1_init, SEXP tol, SEXP max_iter, SEXP update_w0, SEXP update_sigma, SEXP compute_ELBO, SEXP standardize) {
@@ -43,11 +71,15 @@ extern "C" SEXP _susieR_scale_xtx_cpp(SEXP XtX, SEXP csd) {
 
 extern "C" {
 static const R_CallMethodDef CallEntries[] = {
-    {"_susieR_caisa_cpp",         (DL_FUNC) &_susieR_caisa_cpp,         16},
-    {"_susieR_mr_ash_rss_cpp",    (DL_FUNC) &_susieR_mr_ash_rss_cpp,    16},
-    {"_susieR_random_order",      (DL_FUNC) &_susieR_random_order,       2},
-    {"_susieR_scale_xtx_cpp",     (DL_FUNC) &_susieR_scale_xtx_cpp,      2},
-    {"_susieR_ser_lbf_model_cpp", (DL_FUNC) &_susieR_ser_lbf_model_cpp,  5},
+    {"_susieR_caisa_cpp",            (DL_FUNC) &_susieR_caisa_cpp,            16},
+    {"_susieR_const_col_screen_cpp", (DL_FUNC) &_susieR_const_col_screen_cpp,  1},
+    {"_susieR_mr_ash_rss_cpp",       (DL_FUNC) &_susieR_mr_ash_rss_cpp,       16},
+    {"_susieR_orig_scale_xtx_cpp",   (DL_FUNC) &_susieR_orig_scale_xtx_cpp,    2},
+    {"_susieR_random_order",         (DL_FUNC) &_susieR_random_order,          2},
+    {"_susieR_scale_xtx_cpp",        (DL_FUNC) &_susieR_scale_xtx_cpp,         2},
+    {"_susieR_scale_xtx_sym_cpp",    (DL_FUNC) &_susieR_scale_xtx_sym_cpp,     2},
+    {"_susieR_ser_lbf_model_cpp",    (DL_FUNC) &_susieR_ser_lbf_model_cpp,     5},
+    {"_susieR_xtx_check_cpp",        (DL_FUNC) &_susieR_xtx_check_cpp,         1},
     {NULL, NULL, 0}
 };
 }

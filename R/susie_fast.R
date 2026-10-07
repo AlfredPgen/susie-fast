@@ -254,7 +254,8 @@ fast_self_test <- function() {
 #' @keywords internal
 fast_scale_xtx <- function(XtX, csd) {
   if (fast_mode() == "off" || !is.matrix(XtX) || !is.double(XtX) ||
-      isS4(XtX) || nrow(XtX) != ncol(XtX) || !fast_kernel_ok())
+      isS4(XtX) || nrow(XtX) != ncol(XtX) || !is.null(attr(XtX, "names")) ||
+      !is.null(attr(XtX, "tsp")) || !fast_kernel_ok())
     return(t((1 / csd) * XtX) / csd)
   at <- attributes(XtX)
   if (!is.null(at$dimnames)) at$dimnames <- at$dimnames[2:1]
