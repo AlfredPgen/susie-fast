@@ -76,11 +76,14 @@ fast_ash_R <- function(data, model) {
 
 # abs(Xcorr) > threshold, for LD_adj %*% pip. The cached copy is stored as
 # 0/1 doubles (NA stays NA), which is what %*% coerces the logical matrix
-# to, so the product is the same.
+# to, so the product is the same. Only for a base double matrix: anything
+# else (e.g. the S4 Matrix that safe_cor() returns for sparse X with a
+# constant column) takes the upstream expression, and its errors.
 #' @keywords internal
 fast_ld_adj <- function(Xcorr, threshold, model) {
   cache <- model$runtime$fast_cache
-  if (is.null(cache) || !identical(Xcorr, cache$xcorr))
+  if (is.null(cache) || isS4(Xcorr) || !is.matrix(Xcorr) || !is.double(Xcorr) ||
+      !identical(Xcorr, cache$xcorr))
     return(abs(Xcorr) > threshold)
   if (is.null(cache$ld_adj) || !identical(cache$ld_adj_threshold, threshold)) {
     A <- abs(Xcorr) > threshold

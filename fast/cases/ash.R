@@ -26,7 +26,8 @@ ash_conds <- function(f) {
   w <- character(0)
   r <- tryCatch(withCallingHandlers(f(), warning = function(c) {
          w <<- c(w, conditionMessage(c)); invokeRestart("muffleWarning") }),
-       error = function(e) paste("ERROR:", conditionMessage(e)))
+       error = function(e) paste("ERROR:", conditionMessage(e), "| call:",
+                                 paste(deparse(conditionCall(e)), collapse = " ")))
   if (is.list(r)) r$.diag_env <- NULL
   list(result = r, warnings = w)
 }
@@ -55,6 +56,15 @@ cases <- c(cases, list(
   ash_ind_p1000      = function() susie(d1$X, d1$y, unmappable_effects = "ash"),
   ash_ind_archived   = function() susie(ds$X, ds$y, unmappable_effects = "ash_filter_archived"),
   ash_ind_const      = function() { X <- ds$X; X[, 7] <- 1; susie(X, ds$y, unmappable_effects = "ash") },
+  # Sparse X with a zero column: safe_cor() falls back to an S4 Matrix
+  # correlation, which upstream passes on until caisa_cpp rejects it.
+  ash_ind_sparse_const = function() ash_conds(function() {
+                           X <- ds$X; X[, 9] <- 0
+                           susie(Matrix::Matrix(X, sparse = TRUE), ds$y, unmappable_effects = "ash") }),
+  ash_ind_sparse_const_arch = function() ash_conds(function() {
+                           X <- ds$X; X[, 9] <- 0
+                           susie(Matrix::Matrix(X, sparse = TRUE), ds$y,
+                                 unmappable_effects = "ash_filter_archived") }),
   ash_ss_negdiag     = function() ash_conds(function()
                          susie_ss(ash_negdiag$XtX, ash_negdiag$Xty, ash_negdiag$yty, ash_negdiag$n,
                                   standardize = FALSE, unmappable_effects = "ash",

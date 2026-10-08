@@ -142,7 +142,7 @@ ash_conds_modes <- function(fun) {
     w <- character(0)
     r <- tryCatch(withCallingHandlers(fun(), warning = function(c) {
            w <<- c(w, conditionMessage(c)); invokeRestart("muffleWarning") }),
-         error = function(e) conditionMessage(e))
+         error = function(e) c(conditionMessage(e), deparse(conditionCall(e))))
     if (is.list(r)) r$.diag_env <- NULL
     list(result = r, warnings = w)
   }
@@ -210,6 +210,15 @@ test_that("SuSiE-ash warnings and errors match the upstream code path", {
     expect_identical(m$full$warnings, m$ref$warnings)
     if (is.character(m$ref$result))
       expect_identical(m$full$result, m$ref$result)
+  }
+  # Sparse X with a zero column: the correlation matrix is an S4 Matrix,
+  # which upstream passes on until caisa_cpp rejects it.
+  Xs <- d$X; Xs[, 9] <- 0
+  Xs <- Matrix::Matrix(Xs, sparse = TRUE)
+  for (ue in c("ash", "ash_filter_archived")) {
+    m <- ash_conds_modes(function() susie(Xs, d$y, unmappable_effects = ue))
+    expect_identical(m$exact, m$ref)
+    expect_identical(m$full, m$ref)
   }
 })
 
