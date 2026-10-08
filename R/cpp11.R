@@ -8,6 +8,10 @@ caisa_cpp <- function(X, w, sa2, pi_init, beta_init, r_init, sigma2, o_r, maxite
   .Call(`_susieR_caisa_cpp`, X, w, sa2, pi_init, beta_init, r_init, sigma2, o_r, maxiter, miniter, convtol, epstol, method_q, updatepi, updatesigma, verbose)
 }
 
+rss_diag_rsinvr_cpp <- function(V, w) {
+  .Call(`_susieR_rss_diag_rsinvr_cpp`, V, w)
+}
+
 mr_ash_rss_cpp <- function(bhat, shat, z, R, var_y, n, sigma2_e, s0, w0, mu1_init, tol, max_iter, update_w0, update_sigma, compute_ELBO, standardize) {
   .Call(`_susieR_mr_ash_rss_cpp`, bhat, shat, z, R, var_y, n, sigma2_e, s0, w0, mu1_init, tol, max_iter, update_w0, update_sigma, compute_ELBO, standardize)
 }

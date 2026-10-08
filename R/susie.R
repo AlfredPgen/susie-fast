@@ -960,5 +960,5 @@ susie_rss_lambda <- function(z = NULL, R = NULL, n = NULL,
   if (init_only)
     return(susie_objects)
 
-  susie_workhorse(susie_objects$data, susie_objects$params)
+  fast_lambda_scope(susie_workhorse(susie_objects$data, susie_objects$params))
 }

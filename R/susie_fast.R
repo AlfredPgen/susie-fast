@@ -47,11 +47,11 @@ fast_mode <- function() {
 #' @keywords internal
 fast_cache_new <- function(data, params, L) {
   mode <- fast_mode()
-  if (mode == "off" || !class(data)[1] %in% c("ss", "individual"))
+  if (mode == "off" || !class(data)[1] %in% c("ss", "individual", "rss_lambda"))
     return(NULL)
   cache <- new.env(parent = emptyenv())
   # get_ER2 may be re-summed from the cache only when it feeds just the ELBO.
-  cache$er2_from_products <- mode == "full" &&
+  cache$er2_from_products <- mode == "full" && class(data)[1] != "rss_lambda" &&
     !isTRUE(params$estimate_residual_variance) && !isTRUE(params$use_NIG)
   cache$b    <- vector("list", L)
   cache$prod <- vector("list", L)
@@ -88,7 +88,8 @@ fast_Rv_l <- function(data, model, l, b)
     compute = function(v) compute_Rv(data, v),
     out_len = length(b),
     finite  = function() {
-      M <- if (!is.null(data$X)) data$X else data$XtX
+      M <- if (!is.null(data$X)) data$X else if (!is.null(data$XtX)) data$XtX
+           else if (is.matrix(data$R) && is.double(data$R)) data$R
       !is.null(M) && is.finite(sum(M))
     })
 
@@ -156,7 +157,7 @@ fast_er2_store <- function(model, value) {
 #' @keywords internal
 fast_ser_evaluator <- function(data, params, model, ser_stats) {
   if (fast_mode() == "off" ||
-      !class(data)[1] %in% c("ss", "individual") ||
+      !class(data)[1] %in% c("ss", "individual", "rss_lambda") ||
       isTRUE(params$use_NIG) ||
       identical(params$unmappable_effects, "inf") ||
       !identical(ser_stats$optim_scale, "log"))

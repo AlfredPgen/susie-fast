@@ -43,8 +43,10 @@ initialize_susie_model.rss_lambda <- function(data, params, var_y, ...) {
   Vt   <- t(V)
   Dinv <- compute_Dinv(model, data)
 
-  model$SinvRj   <- V %*% (Dinv * D * Vt)
-  model$RjSinvRj <- colSums(Vt * (Dinv * D^2 * Vt))
+  sinv <- fast_lambda_sinv(data, V, D, Dinv,
+    list(SinvRj = V %*% (Dinv * D * Vt), RjSinvRj = colSums(Vt * (Dinv * D^2 * Vt))))
+  model$SinvRj   <- sinv$SinvRj
+  model$RjSinvRj <- sinv$RjSinvRj
 
   return(model)
 }
@@ -83,7 +85,7 @@ track_ibss_fit.rss_lambda <- function(data, params, model, tracking, iter, elbo,
 compute_residuals.rss_lambda <- function(data, params, model, l, ...) {
   # Remove lth effect from fitted values (scaled by slot weight)
   sw_l <- get_slot_weight(model, l)
-  Rz_without_l <- model$Rz - sw_l * compute_Rv(data, model$alpha[l, ] * model$mu[l, ])
+  Rz_without_l <- model$Rz - sw_l * fast_Rv_l(data, model, l, model$alpha[l, ] * model$mu[l, ])
 
   # Store unified residuals in model
   model$residuals         <- data$z - Rz_without_l
@@ -96,7 +98,7 @@ compute_residuals.rss_lambda <- function(data, params, model, l, ...) {
 # Compute SER statistics
 #' @keywords internal
 compute_ser_statistics.rss_lambda <- function(data, params, model, l, ...) {
-  signal  <- as.vector(crossprod(model$SinvRj, model$residuals))
+  signal  <- fast_lambda_signal(data, model)
   shat2   <- 1 / model$RjSinvRj
   betahat <- signal * shat2
 
@@ -122,6 +124,8 @@ SER_posterior_e_loglik.rss_lambda <- function(data, params, model, l) {
   eigen_R <- get_eigen_R(data, model)
   V      <- eigen_R$vectors
   Dinv   <- compute_Dinv(model, data)
+  if (fast_lambda_null_effect(data, model, Eb, V, Dinv))
+    return(-0.5 * (-2 * 0 + sum(model$RjSinvRj * Eb2)))
   rR     <- compute_Rv(data, model$residuals)
   SinvEb <- V %*% (Dinv * crossprod(V, Eb))
 
@@ -132,7 +136,7 @@ SER_posterior_e_loglik.rss_lambda <- function(data, params, model, l) {
 #' @keywords internal
 calculate_posterior_moments.rss_lambda <- function(data, params, model, V, l, ...) {
   shat2 <- 1 / model$RjSinvRj
-  signal    <- as.vector(crossprod(model$SinvRj, model$residuals))
+  signal    <- fast_lambda_signal(data, model)
   betahat   <- signal * (1 / model$RjSinvRj)
   moments   <- gaussian_ser_moments(betahat, shat2, V)
 
@@ -236,7 +240,7 @@ update_fitted_values.rss_lambda <- function(data, params, model, l, ...) {
   # Add back lth effect (scaled by slot weight)
   sw_l <- get_slot_weight(model, l)
   model$Rz <- model$fitted_without_l + sw_l *
-    as.vector(compute_Rv(data, model$alpha[l, ] * model$mu[l, ]))
+    as.vector(fast_Rv_l(data, model, l, model$alpha[l, ] * model$mu[l, ]))
   model    <- precompute_rss_lambda_terms(data, model)
 
   return(model)
@@ -268,6 +272,7 @@ update_variance_components.rss_lambda <- function(data, params, model, ...) {
     temp_model$sigma2 <- sigma2
     Eloglik.rss_lambda(data, temp_model)
   }
+  objective <- fast_lambda_objective(data, model, objective)
   est_sigma2 <- optimize(objective, interval = c(1e-4, upper_bound),
                          maximum = TRUE)$maximum
   if (objective(est_sigma2) < objective(upper_bound))
@@ -286,8 +291,10 @@ update_derived_quantities.rss_lambda <- function(data, params, model) {
   Vt   <- t(V)
 
   # Update SinvRj and RjSinvRj
-  model$SinvRj   <- V %*% (Dinv * D * Vt)
-  model$RjSinvRj <- colSums(Vt * (Dinv * (D^2) * Vt))
+  sinv <- fast_lambda_sinv(data, V, D, Dinv,
+    list(SinvRj = V %*% (Dinv * D * Vt), RjSinvRj = colSums(Vt * (Dinv * (D^2) * Vt))))
+  model$SinvRj   <- sinv$SinvRj
+  model$RjSinvRj <- sinv$RjSinvRj
 
   return(model)
 }
