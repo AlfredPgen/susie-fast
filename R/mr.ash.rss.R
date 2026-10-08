@@ -104,7 +104,8 @@ mr.ash.rss <- function(bhat, shat, R, var_y, n,
     sigma2_e <- if (is.finite(var_y)) var_y else 1
   }
 
-  result <- fast_mr_ash_rss_fn()(
+  result <- fast_mr_ash_rss_fn(bhat, shat, z, R, var_y, n, sigma2_e, s0,
+                               w0, mu1_init)(
     bhat = bhat, shat = shat, z = z, R = R,
     var_y = var_y, n = n, sigma2_e = sigma2_e,
     s0 = s0, w0 = w0, mu1_init = mu1_init,

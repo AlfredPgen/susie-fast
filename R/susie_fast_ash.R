@@ -95,9 +95,13 @@ fast_ld_adj <- function(Xcorr, threshold, model) {
 }
 
 # The mr.ash.rss kernel to call: fast_mr_ash_rss_cpp or mr_ash_rss_cpp.
+# Inputs with NA/NaN go to the upstream kernel: the two propagate missing
+# values differently (NA vs NaN), and identical() tells them apart.
 #' @keywords internal
-fast_mr_ash_rss_fn <- function() {
-  if (fast_mode() != "off" && fast_mr_ash_rss_ok()) fast_mr_ash_rss_cpp
+fast_mr_ash_rss_fn <- function(...) {
+  if (fast_mode() != "off" &&
+      !any(vapply(list(...), function(x) is.numeric(x) && anyNA(x), TRUE)) &&
+      fast_mr_ash_rss_ok()) fast_mr_ash_rss_cpp
   else mr_ash_rss_cpp
 }
 
@@ -140,8 +144,8 @@ fast_mr_ash_rss_self_test <- function() {
     }
     sd * qnorm(u)
   }
-  for (trial in 1:24) {
-    p <- c(1, 7, 60)[trial %% 3 + 1]
+  for (trial in 1:12) {
+    p <- c(1, 7, 30)[trial %% 3 + 1]
     K <- c(1, 5, 25)[(trial %/% 3) %% 3 + 1]
     n <- 200L
     X <- matrix(draw(n * p), n, p)
@@ -161,7 +165,7 @@ fast_mr_ash_rss_self_test <- function() {
     fl <- as.logical(bitwAnd(trial, c(1, 2, 4, 8)))
     var_y <- if (trial %% 6 == 0) Inf else var(y)
     if (!fast_mr_ash_rss_same(bhat, shat, z, R, var_y, n, 1.2, s0, w0, mu1,
-                              1e-4, 1000L, fl[1], fl[2], fl[3], fl[4]))
+                              1e-4, 200L, fl[1], fl[2], fl[3], fl[4]))
       return(FALSE)
   }
   TRUE

@@ -19,6 +19,90 @@ extern "C" SEXP _susieR_caisa_cpp(SEXP X, SEXP w, SEXP sa2, SEXP pi_init, SEXP b
     return cpp11::as_sexp(caisa_cpp(cpp11::as_cpp<cpp11::decay_t<const doubles_matrix<>&>>(X), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(w), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(sa2), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(pi_init), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(beta_init), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(r_init), cpp11::as_cpp<cpp11::decay_t<double>>(sigma2), cpp11::as_cpp<cpp11::decay_t<const integers&>>(o_r), cpp11::as_cpp<cpp11::decay_t<int>>(maxiter), cpp11::as_cpp<cpp11::decay_t<int>>(miniter), cpp11::as_cpp<cpp11::decay_t<double>>(convtol), cpp11::as_cpp<cpp11::decay_t<double>>(epstol), cpp11::as_cpp<cpp11::decay_t<std::string>>(method_q), cpp11::as_cpp<cpp11::decay_t<bool>>(updatepi), cpp11::as_cpp<cpp11::decay_t<bool>>(updatesigma), cpp11::as_cpp<cpp11::decay_t<bool>>(verbose)));
   END_CPP11
 }
+// fast_ash.cpp
+writable::list fast_mr_ash_rss_cpp(const doubles& bhat, const doubles& shat, const doubles& z, const doubles_matrix<>& R, double var_y, int n, double sigma2_e, const doubles& s0, const doubles& w0, const doubles& mu1_init, double tol, int max_iter, bool update_w0, bool update_sigma, bool compute_ELBO, bool standardize);
+extern "C" SEXP _susieR_fast_mr_ash_rss_cpp(SEXP bhat, SEXP shat, SEXP z, SEXP R, SEXP var_y, SEXP n, SEXP sigma2_e, SEXP s0, SEXP w0, SEXP mu1_init, SEXP tol, SEXP max_iter, SEXP update_w0, SEXP update_sigma, SEXP compute_ELBO, SEXP standardize) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(fast_mr_ash_rss_cpp(cpp11::as_cpp<cpp11::decay_t<const doubles&>>(bhat), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(shat), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(z), cpp11::as_cpp<cpp11::decay_t<const doubles_matrix<>&>>(R), cpp11::as_cpp<cpp11::decay_t<double>>(var_y), cpp11::as_cpp<cpp11::decay_t<int>>(n), cpp11::as_cpp<cpp11::decay_t<double>>(sigma2_e), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(s0), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(w0), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(mu1_init), cpp11::as_cpp<cpp11::decay_t<double>>(tol), cpp11::as_cpp<cpp11::decay_t<int>>(max_iter), cpp11::as_cpp<cpp11::decay_t<bool>>(update_w0), cpp11::as_cpp<cpp11::decay_t<bool>>(update_sigma), cpp11::as_cpp<cpp11::decay_t<bool>>(compute_ELBO), cpp11::as_cpp<cpp11::decay_t<bool>>(standardize)));
+  END_CPP11
+}
+// fast_constructors.cpp
+int xtx_check_cpp(const doubles_matrix<>& XtX);
+extern "C" SEXP _susieR_xtx_check_cpp(SEXP XtX) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(xtx_check_cpp(cpp11::as_cpp<cpp11::decay_t<const doubles_matrix<>&>>(XtX)));
+  END_CPP11
+}
+// fast_constructors.cpp
+doubles scale_xtx_sym_cpp(const doubles_matrix<>& XtX, const doubles& csd);
+extern "C" SEXP _susieR_scale_xtx_sym_cpp(SEXP XtX, SEXP csd) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(scale_xtx_sym_cpp(cpp11::as_cpp<cpp11::decay_t<const doubles_matrix<>&>>(XtX), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(csd)));
+  END_CPP11
+}
+// fast_constructors.cpp
+doubles orig_scale_xtx_cpp(const doubles_matrix<>& R, const doubles& s);
+extern "C" SEXP _susieR_orig_scale_xtx_cpp(SEXP R, SEXP s) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(orig_scale_xtx_cpp(cpp11::as_cpp<cpp11::decay_t<const doubles_matrix<>&>>(R), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(s)));
+  END_CPP11
+}
+// fast_constructors.cpp
+logicals const_col_screen_cpp(const doubles_matrix<>& X);
+extern "C" SEXP _susieR_const_col_screen_cpp(SEXP X) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(const_col_screen_cpp(cpp11::as_cpp<cpp11::decay_t<const doubles_matrix<>&>>(X)));
+  END_CPP11
+}
+// fast_lambda.cpp
+doubles rss_diag_rsinvr_cpp(const doubles_matrix<>& V, const doubles& w);
+extern "C" SEXP _susieR_rss_diag_rsinvr_cpp(SEXP V, SEXP w) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(rss_diag_rsinvr_cpp(cpp11::as_cpp<cpp11::decay_t<const doubles_matrix<>&>>(V), cpp11::as_cpp<cpp11::decay_t<const doubles&>>(w)));
+  END_CPP11
+}
+// fast_post.cpp
+double block_maxabs_cpp(const doubles_matrix<>& M, const integers& pos);
+extern "C" SEXP _susieR_block_maxabs_cpp(SEXP M, SEXP pos) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(block_maxabs_cpp(cpp11::as_cpp<cpp11::decay_t<const doubles_matrix<>&>>(M), cpp11::as_cpp<cpp11::decay_t<const integers&>>(pos)));
+  END_CPP11
+}
+// fast_products.cpp
+bool fast_mayhave_cpp(SEXP x);
+extern "C" SEXP _susieR_fast_mayhave_cpp(SEXP x) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(fast_mayhave_cpp(cpp11::as_cpp<cpp11::decay_t<SEXP>>(x)));
+  END_CPP11
+}
+// fast_products.cpp
+bool fast_same_cpp(SEXP a, SEXP b);
+extern "C" SEXP _susieR_fast_same_cpp(SEXP a, SEXP b) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(fast_same_cpp(cpp11::as_cpp<cpp11::decay_t<SEXP>>(a), cpp11::as_cpp<cpp11::decay_t<SEXP>>(b)));
+  END_CPP11
+}
+// fast_products.cpp
+bool fast_symmetric_cpp(SEXP A);
+extern "C" SEXP _susieR_fast_symmetric_cpp(SEXP A) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(fast_symmetric_cpp(cpp11::as_cpp<cpp11::decay_t<SEXP>>(A)));
+  END_CPP11
+}
+// fast_products.cpp
+int fast_max_threads_cpp();
+extern "C" SEXP _susieR_fast_max_threads_cpp() {
+  BEGIN_CPP11
+    return cpp11::as_sexp(fast_max_threads_cpp());
+  END_CPP11
+}
+// fast_products.cpp
+SEXP fast_gemv_cpp(SEXP A, SEXP x, bool trans, bool ref, int nthreads);
+extern "C" SEXP _susieR_fast_gemv_cpp(SEXP A, SEXP x, SEXP trans, SEXP ref, SEXP nthreads) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(fast_gemv_cpp(cpp11::as_cpp<cpp11::decay_t<SEXP>>(A), cpp11::as_cpp<cpp11::decay_t<SEXP>>(x), cpp11::as_cpp<cpp11::decay_t<bool>>(trans), cpp11::as_cpp<cpp11::decay_t<bool>>(ref), cpp11::as_cpp<cpp11::decay_t<int>>(nthreads)));
+  END_CPP11
+}
 // fast_ser.cpp
 SEXP ser_s_table_cpp(const doubles& s, const logicals& zero, int cap);
 extern "C" SEXP _susieR_ser_s_table_cpp(SEXP s, SEXP zero, SEXP cap) {
@@ -78,16 +162,28 @@ extern "C" SEXP _susieR_scale_xtx_cpp(SEXP XtX, SEXP csd) {
 
 extern "C" {
 static const R_CallMethodDef CallEntries[] = {
+    {"_susieR_block_maxabs_cpp",      (DL_FUNC) &_susieR_block_maxabs_cpp,       2},
     {"_susieR_caisa_cpp",             (DL_FUNC) &_susieR_caisa_cpp,             16},
+    {"_susieR_const_col_screen_cpp",  (DL_FUNC) &_susieR_const_col_screen_cpp,   1},
+    {"_susieR_fast_gemv_cpp",         (DL_FUNC) &_susieR_fast_gemv_cpp,          5},
+    {"_susieR_fast_max_threads_cpp",  (DL_FUNC) &_susieR_fast_max_threads_cpp,   0},
+    {"_susieR_fast_mayhave_cpp",      (DL_FUNC) &_susieR_fast_mayhave_cpp,       1},
+    {"_susieR_fast_mr_ash_rss_cpp",   (DL_FUNC) &_susieR_fast_mr_ash_rss_cpp,   16},
+    {"_susieR_fast_same_cpp",         (DL_FUNC) &_susieR_fast_same_cpp,          2},
+    {"_susieR_fast_symmetric_cpp",    (DL_FUNC) &_susieR_fast_symmetric_cpp,     1},
     {"_susieR_mr_ash_rss_cpp",        (DL_FUNC) &_susieR_mr_ash_rss_cpp,        16},
+    {"_susieR_orig_scale_xtx_cpp",    (DL_FUNC) &_susieR_orig_scale_xtx_cpp,     2},
     {"_susieR_random_order",          (DL_FUNC) &_susieR_random_order,           2},
+    {"_susieR_rss_diag_rsinvr_cpp",   (DL_FUNC) &_susieR_rss_diag_rsinvr_cpp,    2},
     {"_susieR_scale_xtx_cpp",         (DL_FUNC) &_susieR_scale_xtx_cpp,          2},
+    {"_susieR_scale_xtx_sym_cpp",     (DL_FUNC) &_susieR_scale_xtx_sym_cpp,      2},
     {"_susieR_ser_e_loglik_cpp",      (DL_FUNC) &_susieR_ser_e_loglik_cpp,       6},
     {"_susieR_ser_lbf_l_cpp",         (DL_FUNC) &_susieR_ser_lbf_l_cpp,          4},
     {"_susieR_ser_lbf_model_cpp",     (DL_FUNC) &_susieR_ser_lbf_model_cpp,      5},
     {"_susieR_ser_lbf_model_tab_cpp", (DL_FUNC) &_susieR_ser_lbf_model_tab_cpp,  5},
     {"_susieR_ser_moments_cpp",       (DL_FUNC) &_susieR_ser_moments_cpp,        4},
     {"_susieR_ser_s_table_cpp",       (DL_FUNC) &_susieR_ser_s_table_cpp,        3},
+    {"_susieR_xtx_check_cpp",         (DL_FUNC) &_susieR_xtx_check_cpp,          1},
     {NULL, NULL, 0}
 };
 }
