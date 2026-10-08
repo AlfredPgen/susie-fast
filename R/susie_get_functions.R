@@ -376,9 +376,11 @@ susie_get_cs <- function(res, X = NULL, Xcorr = NULL, coverage = 0.95,
     if (null_index > 0 && null_index %in% cs[[i]]) {
       purity <- rbind(purity, c(-9, -9, -9))
     } else {
+      drop <- fast_purity_drop(cs[[i]], X, Xcorr, squared, n_purity,
+                               min_abs_corr, median_abs_corr)
       purity <- rbind(
         purity,
-        matrix(get_purity(cs[[i]], X, Xcorr, squared, n_purity), 1, 3)
+        matrix(if (!is.null(drop)) drop else get_purity(cs[[i]], X, Xcorr, squared, n_purity), 1, 3)
       )
     }
   }
