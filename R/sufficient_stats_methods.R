@@ -133,6 +133,8 @@ compute_residuals.ss <- function(data, params, model, l, ...) {
   b_minus_l <- colSums(sw * model$alpha * model$mu) - sw_l * model$alpha[l, ] * model$mu[l, ]
 
   if (params$unmappable_effects == "inf") {
+    fast_model <- fast_residuals_inf(data, model, b_minus_l)
+    if (!is.null(fast_model)) return(fast_model)
     # SuSiE-inf: Omega-weighted residuals.  model$XtOmegay, model$omega_var,
     # and model$predictor_weights (= diagXtOmegaX) are cached at iter
     # boundaries; no recompute here.
@@ -445,6 +447,7 @@ neg_loglik.ss <- function(data, params, model, V_param, ser_stats, ...) {
 update_fitted_values.ss <- function(data, params, model, l, ...) {
   sw_l <- get_slot_weight(model, l)
   if (params$unmappable_effects == "inf") {
+    if (fast_inf_skip_fitted(data, params, model, l)) return(model)
     # SuSiE-inf: include theta in fitted values
     sw <- if (!is.null(model$slot_weights)) model$slot_weights else rep(1, nrow(model$alpha))
     model$XtXr <- as.vector(compute_Rv(data, colSums(sw * model$alpha * model$mu) + model$theta))
@@ -466,7 +469,7 @@ update_variance_components.ss <- function(data, params, model, ...) {
       matrix(rep(1 / model$V, data$p), nrow = L, ncol = data$p, byrow = FALSE)
 
     # Compute theta for infinitesimal effects.
-    theta <- compute_theta_blup(data, model)
+    theta <- fast_theta_blup(data, model)
 
     # Sigma2 and tau2 update
     if (params$estimate_residual_method == "MLE") {
@@ -475,7 +478,7 @@ update_variance_components.ss <- function(data, params, model, ...) {
                   tau2   = mle_result$tau2,
                   theta  = theta))
     } else {
-      mom_result <- mom_unmappable(data, params, model, omega, model$tau2)
+      mom_result <- fast_mom_unmappable(data, params, model, omega, model$tau2)
       return(list(sigma2 = mom_result$sigma2,
                   tau2   = mom_result$tau2,
                   theta  = theta))
@@ -497,7 +500,7 @@ update_variance_components.ss <- function(data, params, model, ...) {
 update_derived_quantities.ss <- function(data, params, model) {
   if (params$unmappable_effects == "inf") {
     # Update omega quantities for next iteration
-    omega_res               <- compute_omega_quantities(data, model$tau2, model$sigma2)
+    omega_res               <- fast_omega_quantities(data, model)
     model$omega_var         <- omega_res$omega_var
     model$predictor_weights <- omega_res$diagXtOmegaX
     model$XtOmegay          <- data$eigen_vectors %*% (data$VtXty / omega_res$omega_var)
