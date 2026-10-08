@@ -1,0 +1,25 @@
+# SuSiE-inf (unmappable_effects = "inf") configurations: work package "inf".
+cases <- c(cases, list(
+  inf_rss_p1000    = function() susie_rss(d1$z, d1$R, n = d1$n, unmappable_effects = "inf"),
+  inf_rss_p3000    = function() susie_rss(d2$z, d2$R, n = d2$n, unmappable_effects = "inf"),
+  inf_rss_L20_pw   = function() susie_rss(d1$z, d1$R, n = d1$n, L = 20, prior_weights = pw, unmappable_effects = "inf"),
+  inf_rss_L1       = function() susie_rss(d1$z, d1$R, n = d1$n, L = 1, unmappable_effects = "inf"),
+  inf_rss_nullw    = function() susie_rss(d1$z, d1$R, n = d1$n, null_weight = 0.2, unmappable_effects = "inf"),
+  inf_rss_noest    = function() susie_rss(d1$z, d1$R, n = d1$n, estimate_prior_variance = FALSE, unmappable_effects = "inf"),
+  inf_rss_EM       = function() susie_rss(d1$z, d1$R, n = d1$n, estimate_prior_method = "EM", unmappable_effects = "inf"),
+  inf_rss_maxiter  = function() susie_rss(d1$z, d1$R, n = d1$n, max_iter = 3, unmappable_effects = "inf"),
+  inf_rss_track    = function() susie_rss(d1$z, d1$R, n = d1$n, track_fit = TRUE, unmappable_effects = "inf"),
+  inf_rss_greedy   = function() susie_rss(d1$z, d1$R, n = d1$n, L = 15, L_greedy = 5, unmappable_effects = "inf"),
+  inf_rss_Rfinite  = function() susie_rss(ds$z, ds$R, n = ds$n, R_finite = 500, unmappable_effects = "inf"),
+  inf_rss_mism     = function() susie_rss(ds$z, ds$R, n = ds$n, R_mismatch = "eb", R_finite = 500, unmappable_effects = "inf"),
+  inf_rss_slot     = function() susie_rss(ds$z, ds$R, n = ds$n, slot_prior = slot_prior_betabinom(), unmappable_effects = "inf"),
+  inf_rss_small_v  = function() susie_rss(ds$z, ds$R, n = ds$n, verbose = TRUE, unmappable_effects = "inf"),
+  inf_ss_p1000     = function() susie_ss(ss$XtX, ss$Xty, ss$yty, ss$n, unmappable_effects = "inf"),
+  inf_ss_NIG       = function() susie_ss(ss$XtX, ss$Xty, ss$yty, ss$n, estimate_residual_method = "NIG", unmappable_effects = "inf"),
+  inf_ind_p1000    = function() susie(d1$X, d1$y, unmappable_effects = "inf"),
+  inf_ind_nostd    = function() susie(ds$X, ds$y, standardize = FALSE, intercept = FALSE, unmappable_effects = "inf"),
+  inf_ind_track    = function() susie(ds$X, ds$y, track_fit = TRUE, max_iter = 4, unmappable_effects = "inf"),
+  inf_ind_greedy   = function() susie(ds$X, ds$y, L = 12, L_greedy = 4, unmappable_effects = "inf"),
+  inf_ind_slot     = function() susie(ds$X, ds$y, slot_prior = slot_prior_poisson(C = 3), unmappable_effects = "inf"),
+  inf_ind_noest    = function() susie(ds$X, ds$y, estimate_prior_variance = FALSE, unmappable_effects = "inf")
+))

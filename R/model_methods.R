@@ -328,7 +328,7 @@ get_objective.default <- function(data, params, model) {
   if (!is.null(params$unmappable_effects) && params$unmappable_effects == "inf") {
     # Compute omega
     L         <- nrow(model$alpha)
-    omega_res <- compute_omega_quantities(data, model$tau2, model$sigma2)
+    omega_res <- fast_omega_quantities(data, model)
     omega     <- matrix(0, L, data$p)
 
     for (l in seq_len(L)) {
@@ -336,7 +336,7 @@ get_objective.default <- function(data, params, model) {
     }
 
     # Compute total ELBO for infinitesimal effects model
-    objective <- compute_elbo_inf(
+    objective <- fast_elbo_inf(fast_inf_cache(model),
       model$alpha, model$mu, omega, model$lbf,
       model$sigma2, model$tau2, data$n, data$p,
       data$eigen_vectors, data$eigen_values,

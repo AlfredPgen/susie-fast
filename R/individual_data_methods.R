@@ -116,6 +116,8 @@ compute_residuals.individual <- function(data, params, model, l, ...) {
   if (params$unmappable_effects == "inf") {
     sw <- if (!is.null(model$slot_weights)) model$slot_weights else rep(1, nrow(model$alpha))
     b_minus_l <- colSums(sw * model$alpha * model$mu) - sw_l * model$alpha[l, ] * model$mu[l, ]
+    fast_model <- fast_residuals_inf(data, model, b_minus_l)
+    if (!is.null(fast_model)) return(fast_model)
 
     Vtb_minus_l <- as.vector(crossprod(data$eigen_vectors, b_minus_l))
 
@@ -376,6 +378,7 @@ neg_loglik.individual <- function(data, params, model, V_param, ser_stats, ...) 
 #' @keywords internal
 update_fitted_values.individual <- function(data, params, model, l, ...) {
   if (params$unmappable_effects == "inf") {
+    if (fast_inf_skip_fitted(data, params, model, l)) return(model)
     # SuSiE-inf: include theta in fitted values; recompute from scratch
     # because fitted_without_l is not maintained on the inf path.
     sw <- if (!is.null(model$slot_weights)) model$slot_weights else rep(1, nrow(model$alpha))
@@ -400,7 +403,7 @@ update_variance_components.individual <- function(data, params, model, ...) {
     omega     <- matrix(rep(model$predictor_weights, L), nrow = L, ncol = data$p, byrow = TRUE) +
       matrix(rep(1 / model$V, data$p), nrow = L, ncol = data$p, byrow = FALSE)
 
-    theta <- compute_theta_blup(data, model)
+    theta <- fast_theta_blup(data, model)
 
     if (params$estimate_residual_method == "MLE") {
       mle_result <- mle_unmappable(data, params, model, omega)
@@ -408,7 +411,7 @@ update_variance_components.individual <- function(data, params, model, ...) {
                   tau2   = mle_result$tau2,
                   theta  = theta))
     } else {
-      mom_result <- mom_unmappable(data, params, model, omega, model$tau2)
+      mom_result <- fast_mom_unmappable(data, params, model, omega, model$tau2)
       return(list(sigma2 = mom_result$sigma2,
                   tau2   = mom_result$tau2,
                   theta  = theta))
@@ -429,7 +432,7 @@ update_derived_quantities.individual <- function(data, params, model) {
   if (params$unmappable_effects == "inf") {
     # SuSiE-inf: refresh omega caches with new (tau2, sigma2) and update
     # the fitted vector to include theta.  Mirrors update_derived_quantities.ss.
-    omega_res               <- compute_omega_quantities(data, model$tau2, model$sigma2)
+    omega_res               <- fast_omega_quantities(data, model)
     model$omega_var         <- omega_res$omega_var
     model$predictor_weights <- omega_res$diagXtOmegaX
     model$XtOmegay          <- as.vector(data$eigen_vectors %*%
