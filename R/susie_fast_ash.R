@@ -10,7 +10,13 @@
 #      mr.ash.rss and the LD adjacency matrix of the neighbourhood PIP.
 #      These are deterministic functions of the data, which does not change
 #      within a workhorse call, so the stored copies are the values upstream
-#      recomputes.
+#      recomputes. A computation that signals a condition (e.g. the 'NaNs
+#      produced' warning of sqrt() on a negative diagonal of XtX) is not
+#      stored: every later call then runs the upstream code again, so the
+#      warnings repeat as often as upstream's do. Memory: besides the data,
+#      the cache holds two p x p double matrices (Xcorr or cov2cor(XtX),
+#      and the LD adjacency; p = 6000: 576 MB) for the whole workhorse
+#      call, where upstream allocates them anew in each ash update.
 #   2. mr.ash.rss. fast_mr_ash_rss_cpp (src/fast_ash.cpp) is mr_ash_rss_cpp
 #      without the per-coordinate containers. It is used only after it has
 #      reproduced mr_ash_rss_cpp bit for bit on this platform (checked once
@@ -24,22 +30,39 @@
 #' @keywords internal
 fast_get_xcorr <- function(data, model) {
   cache <- model$runtime$fast_cache
-  if (is.null(cache)) return(get_xcorr(data))
-  if (is.null(cache$xcorr)) {
+  if (is.null(cache) || isTRUE(cache$ash_nocache)) return(get_xcorr(data))
+  Xcorr <- cache$xcorr
+  if (is.null(Xcorr)) {
     # The safe_cov2cor() branch of get_xcorr(), shared with fast_ash_R().
     if (is.null(data$Xcorr_cache) && !is.null(data$XtX) &&
         any(!(diag(data$XtX) %in% c(0, 1))))
-      cache$xcorr <- fast_ash_cov2cor(data, cache)
+      Xcorr <- fast_ash_cov2cor(data, cache)
     else
-      cache$xcorr <- get_xcorr(data)$Xcorr
+      Xcorr <- fast_ash_once(get_xcorr(data)$Xcorr, cache)
+    if (!isTRUE(cache$ash_nocache)) cache$xcorr <- Xcorr
   }
-  data$Xcorr_cache <- cache$xcorr
-  list(Xcorr = cache$xcorr, data = data)
+  data$Xcorr_cache <- Xcorr
+  list(Xcorr = Xcorr, data = data)
+}
+
+# Evaluates expr; if that signalled a condition (passed on, not muffled),
+# the ash entries of the cache are not used for the rest of the workhorse
+# call, so that later calls recompute and signal it again as upstream does.
+#' @keywords internal
+fast_ash_once <- function(expr, cache) {
+  signalled <- FALSE
+  value <- withCallingHandlers(expr, condition = function(c) signalled <<- TRUE)
+  if (signalled) cache$ash_nocache <- TRUE
+  value
 }
 
 #' @keywords internal
 fast_ash_cov2cor <- function(data, cache) {
-  if (is.null(cache$ash_R)) cache$ash_R <- safe_cov2cor(data$XtX)
+  if (is.null(cache$ash_R)) {
+    R <- fast_ash_once(safe_cov2cor(data$XtX), cache)
+    if (isTRUE(cache$ash_nocache)) return(R)
+    cache$ash_R <- R
+  }
   cache$ash_R
 }
 
@@ -47,7 +70,7 @@ fast_ash_cov2cor <- function(data, cache) {
 #' @keywords internal
 fast_ash_R <- function(data, model) {
   cache <- model$runtime$fast_cache
-  if (is.null(cache)) return(safe_cov2cor(data$XtX))
+  if (is.null(cache) || isTRUE(cache$ash_nocache)) return(safe_cov2cor(data$XtX))
   fast_ash_cov2cor(data, cache)
 }
 
@@ -103,29 +126,35 @@ fast_mr_ash_rss_same <- function(bhat, shat, z, R, var_y, n, sigma2_e, s0, w0,
 
 #' @keywords internal
 fast_mr_ash_rss_self_test <- function() {
-  st <- if (exists(".Random.seed", globalenv(), inherits = FALSE))
-          get(".Random.seed", globalenv()) else NULL
-  on.exit(if (is.null(st)) suppressWarnings(rm(".Random.seed", envir = globalenv()))
-          else assign(".Random.seed", st, envir = globalenv()))
-  set.seed(20261008)
+  # Inputs come from a local Park-Miller generator (exact in doubles), so
+  # the user's random number stream is left alone.
+  state <- 20261008
+  draw <- function(k, sd = 1) {
+    u <- numeric(k)
+    for (i in seq_len(k)) {
+      state <<- (16807 * state) %% 2147483647
+      u[i] <- state / 2147483647
+    }
+    sd * qnorm(u)
+  }
   for (trial in 1:24) {
     p <- c(1, 7, 60)[trial %% 3 + 1]
     K <- c(1, 5, 25)[(trial %/% 3) %% 3 + 1]
     n <- 200L
-    X <- matrix(rnorm(n * p), n, p)
+    X <- matrix(draw(n * p), n, p)
     if (p > 1) X[, 2] <- X[, 1] + 0.3 * X[, 2]
     R <- cor(X)
-    b <- rnorm(p, sd = 0.05); b[1] <- 0.3
-    y <- as.vector(X %*% b + rnorm(n))
+    b <- draw(p, sd = 0.05); b[1] <- 0.3
+    y <- as.vector(X %*% b + draw(n))
     r <- as.vector(cor(X, y))
     z <- r * sqrt((n - 2) / (1 - r^2))
-    shat <- rep(1 / sqrt(n), p) * exp(rnorm(p, sd = 0.1))
+    shat <- rep(1 / sqrt(n), p) * exp(draw(p, sd = 0.1))
     bhat <- z * shat
     s0 <- (2^((0:(K - 1)) / K) - 1)^2 / (n - 1) * n
     if (trial %% 4 == 0) s0[1] <- 0
     w0 <- rep(1 / K, K)
     if (K > 1 && trial %% 5 == 0) w0 <- c(0, rep(1 / (K - 1), K - 1))
-    mu1 <- if (trial %% 2 == 0) numeric(0) else rnorm(p, sd = 0.01)
+    mu1 <- if (trial %% 2 == 0) numeric(0) else draw(p, sd = 0.01)
     fl <- as.logical(bitwAnd(trial, c(1, 2, 4, 8)))
     var_y <- if (trial %% 6 == 0) Inf else var(y)
     if (!fast_mr_ash_rss_same(bhat, shat, z, R, var_y, n, 1.2, s0, w0, mu1,

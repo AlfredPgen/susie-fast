@@ -78,6 +78,7 @@ test_that("mr.ash.rss updates w0 in place as upstream does", {
 })
 
 test_that("SuSiE-ash fits are bit-identical to the upstream code path", {
+  skip_on_cran()
   d <- ash_test_data()
   Xs <- scale(d$X)
   yc <- d$y - mean(d$y)
@@ -129,4 +130,95 @@ test_that("the cached LD adjacency is keyed on the threshold", {
   }
   # A matrix other than the cached one is not served from the cache.
   expect_identical(susieR:::fast_ld_adj(Xc * 0.5, 0.3, model), abs(Xc * 0.5) > 0.3)
+})
+
+# Result (or error message) and warnings of fun() under "off", "exact" and
+# "full".
+ash_conds_modes <- function(fun) {
+  old <- options(susieR.fast = "off")
+  on.exit(options(old))
+  run <- function(mode) {
+    options(susieR.fast = mode)
+    w <- character(0)
+    r <- tryCatch(withCallingHandlers(fun(), warning = function(c) {
+           w <<- c(w, conditionMessage(c)); invokeRestart("muffleWarning") }),
+         error = function(e) conditionMessage(e))
+    if (is.list(r)) r$.diag_env <- NULL
+    list(result = r, warnings = w)
+  }
+  list(ref = run("off"), exact = run("exact"), full = run("full"))
+}
+
+# Near-constant column whose centred sum of squares rounds to a negative
+# number, next to a constant column: safe_cor() takes its fallback and
+# sqrt() warns.
+ash_negcss_X <- function(X) {
+  X <- X[1:50, ]
+  X[, 2] <- 0
+  X[, 4] <- 5.7712482971837744
+  X[1, 4] <- 5.7712482971837593
+  X
+}
+
+test_that("a correlation matrix that warned is recomputed, warning again", {
+  d <- ash_test_data()
+  Xc <- scale(d$X, scale = FALSE)
+  XtX <- crossprod(Xc); XtX[7, 7] <- -XtX[7, 7]
+  X <- ash_negcss_X(d$X)
+  expect_lt(sum(X[, 4]^2) - 50 * mean(X[, 4])^2, 0)
+  conds <- function(f) {
+    w <- character(0)
+    v <- withCallingHandlers(f(), warning = function(c) {
+      w <<- c(w, conditionMessage(c)); invokeRestart("muffleWarning") })
+    list(v, w)
+  }
+  ss <- structure(list(XtX = XtX), class = "ss")
+  ind <- structure(list(X = X), class = "individual")
+  model <- list(runtime = list(fast_cache = new.env(parent = emptyenv())))
+  # Two ash iterations: get_xcorr() then (ss only) safe_cov2cor().
+  ss_fast <- conds(function() for (i in 1:2)
+    list(susieR:::fast_get_xcorr(ss, model), susieR:::fast_ash_R(ss, model)))
+  ss_ref <- conds(function() for (i in 1:2)
+    list(susieR:::get_xcorr(ss), susieR:::safe_cov2cor(ss$XtX)))
+  expect_length(ss_ref[[2]], 4)
+  expect_identical(ss_fast, ss_ref)
+  model <- list(runtime = list(fast_cache = new.env(parent = emptyenv())))
+  ind_fast <- conds(function() lapply(1:2, function(i) susieR:::fast_get_xcorr(ind, model)))
+  ind_ref <- conds(function() lapply(1:2, function(i) susieR:::get_xcorr(ind)))
+  expect_length(ind_ref[[2]], 2)
+  expect_identical(ind_fast, ind_ref)
+})
+
+test_that("SuSiE-ash warnings and errors match the upstream code path", {
+  d <- ash_test_data()
+  Xc <- scale(d$X, scale = FALSE); yc <- d$y - mean(d$y)
+  XtX <- crossprod(Xc); j <- order(abs(d$z))[1]
+  XtX[j, j] <- -XtX[j, j]
+  Xty <- as.vector(crossprod(Xc, yc))
+  X <- ash_negcss_X(d$X)
+  cases <- list(
+    function() susie_ss(XtX, Xty, sum(yc^2), d$n, standardize = FALSE,
+                        unmappable_effects = "ash",
+                        estimate_residual_variance = TRUE),
+    function() susie_ss(XtX, Xty, sum(yc^2), d$n, standardize = FALSE,
+                        unmappable_effects = "ash_filter_archived"),
+    function() susie(X, d$y[1:50], unmappable_effects = "ash"))
+  for (fun in cases) {
+    m <- ash_conds_modes(fun)
+    expect_gt(length(m$ref$warnings), 0)
+    expect_identical(m$exact, m$ref)
+    expect_identical(m$full$warnings, m$ref$warnings)
+    if (is.character(m$ref$result))
+      expect_identical(m$full$result, m$ref$result)
+  }
+})
+
+test_that("the mr.ash.rss self-test leaves the random number stream alone", {
+  old <- RNGkind(normal.kind = "Box-Muller")
+  on.exit(RNGkind(old[1], old[2], old[3]))
+  set.seed(7); rnorm(1)
+  ref <- rnorm(4)
+  set.seed(7); rnorm(1)
+  expect_true(susieR:::fast_mr_ash_rss_self_test())
+  expect_identical(rnorm(4), ref)
 })

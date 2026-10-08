@@ -21,6 +21,23 @@ ash_mr <- function(...) {
   fit <- do.call(mr.ash.rss, args)
   list(fit = fit, w0 = w0)
 }
+ash_conds <- function(f) {
+  # Result (or error message) of f() together with its warnings, in order.
+  w <- character(0)
+  r <- tryCatch(withCallingHandlers(f(), warning = function(c) {
+         w <<- c(w, conditionMessage(c)); invokeRestart("muffleWarning") }),
+       error = function(e) paste("ERROR:", conditionMessage(e)))
+  if (is.list(r)) r$.diag_env <- NULL
+  list(result = r, warnings = w)
+}
+ash_negdiag <- local({
+  # Centred, unscaled XtX with a negative diagonal entry far from the
+  # signal: safe_cov2cor() warns 'NaNs produced' in every call upstream.
+  Xc <- scale(ds$X, scale = FALSE); yc <- ds$y - mean(ds$y)
+  XtX <- crossprod(Xc); j <- order(abs(ds$z))[1]
+  XtX[j, j] <- -XtX[j, j]
+  list(XtX = XtX, Xty = as.vector(crossprod(Xc, yc)), yty = sum(yc^2), n = ds$n)
+})
 cases <- c(cases, list(
   ash_rss_p1000      = function() susie_rss(d1$z, d1$R, n = d1$n, unmappable_effects = "ash"),
   ash_rss_p1000_erv  = function() susie_rss(d1$z, d1$R, n = d1$n, unmappable_effects = "ash",
@@ -38,11 +55,18 @@ cases <- c(cases, list(
   ash_ind_p1000      = function() susie(d1$X, d1$y, unmappable_effects = "ash"),
   ash_ind_archived   = function() susie(ds$X, ds$y, unmappable_effects = "ash_filter_archived"),
   ash_ind_const      = function() { X <- ds$X; X[, 7] <- 1; susie(X, ds$y, unmappable_effects = "ash") },
+  ash_ss_negdiag     = function() ash_conds(function()
+                         susie_ss(ash_negdiag$XtX, ash_negdiag$Xty, ash_negdiag$yty, ash_negdiag$n,
+                                  standardize = FALSE, unmappable_effects = "ash",
+                                  estimate_residual_variance = TRUE)),
+  ash_ss_negdiag_arch = function() ash_conds(function()
+                         susie_ss(ash_negdiag$XtX, ash_negdiag$Xty, ash_negdiag$yty, ash_negdiag$n,
+                                  standardize = FALSE, unmappable_effects = "ash_filter_archived")),
   ash_mr_default     = function() ash_mr(),
   ash_mr_std         = function() ash_mr(standardize = TRUE, sigma2_e = 0.9, mu1_init = ds$z / 100),
   ash_mr_flags_off   = function() ash_mr(update_w0 = FALSE, update_sigma = FALSE, compute_ELBO = FALSE),
   ash_mr_varyInf     = function() ash_mr(var_y = Inf, z = ds$z),
-  ash_mr_w0zero_s00  = function() { K <- 25; w <- c(0, rep(1 / 24, 24)); s <- (2^((0:24) / 25) - 1)^2
+  ash_mr_w0zero_s00  = function() { w <- c(0, rep(1 / 24, 24)); s <- (2^((0:24) / 25) - 1)^2
                                     ash_mr(w0 = w, s0 = s) },
   ash_mr_nan_maxit   = function() { z <- ds$z; z[3] <- NaN; ash_mr(z = z, bhat = z / sqrt(ds$n), max_iter = 5) },
   ash_mr_zero_diag   = function() { R <- ds$R; R[4, 4] <- 0; ash_mr(R = R, max_iter = 5) }
