@@ -172,9 +172,10 @@ fast_ser_evaluator <- function(data, params, model, ser_stats) {
   if (length(h) != length(logpw)) return(NULL)
 
   use_cpp <- fast_kernel_ok()
+  kernel  <- if (use_cpp) fast_ser_kernel(h, s, zero, logpw)
   lbf_model <- function(V) {
     if (use_cpp) {
-      out <- ser_lbf_model_cpp(h, s, zero, logpw, V)
+      out <- kernel(V)
       if (!is.na(out)) return(out)
     }
     lbf <- -0.5 * log(1 + V / s) + h * V / (s * (V + s))
