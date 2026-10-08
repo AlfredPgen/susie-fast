@@ -84,6 +84,31 @@ The fast paths apply to the standard `ss` (`susie_rss`, `susie_ss`) and
 `individual` (`susie`) data classes. Other classes (`susie_rss_lambda`,
 multi-panel, and downstream packages' classes) use the upstream code.
 
+### Post-processing ([`R/susie_fast_post.R`](R/susie_fast_post.R))
+
+- **Purity early exit.** A diffuse effect (V > 0, flat alpha) gives a credible
+  set of most variables, which the purity filter then drops. Its full purity
+  costs O(m^2) (O(n m^2) from X). A few rows of the correlation matrix now
+  show a pair below `min_abs_corr`, and the set is dropped without the rest.
+  From R or XtX the probed values are the exact upstream elements; from X a
+  rounding-error bound valid for any summation order certifies the decision.
+  Applies when `median_abs_corr` is unset and `squared = FALSE`.
+- **z-score memo.** With `compute_univariate_zscore = TRUE`, the univariate
+  z-scores are computed once per top-level fit instead of once per refine
+  candidate.
+- **Parallel refinement (opt-in).** `options(susieR.refine_cores = k)` with
+  k >= 2 fits the refine candidates of each step in k forked processes
+  (Linux/macOS; the serial loop elsewhere, inside a forked worker, or with
+  fewer than two credible sets). The fits, messages, warnings and RNG state
+  are those of the serial loop: conditions are replayed in serial order,
+  and if any candidate used the RNG (the X-path purity subsample) the step
+  is redone serially. Use it with a single-threaded BLAS or OpenBLAS
+  (pthreads): a BLAS or other code that started an OpenMP thread pool in
+  the parent can hang the forked children. Apple's Accelerate, MKL and
+  OpenMP builds are recognised by the BLAS library name and run serially;
+  a BLAS whose name does not show its threading is not detected. MKL
+  without CNR is not run-to-run reproducible even serially.
+
 ## Verification
 
 Every claim was checked against upstream susieR built from the same commit

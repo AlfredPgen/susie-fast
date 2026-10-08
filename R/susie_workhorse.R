@@ -14,6 +14,7 @@
 #' @export
 #' @keywords internal
 susie_workhorse <- function(data, params) {
+  data <- fast_zscore_memo_attach(data, params)
 
   # Greedy-L outer loop. Saturation detected when any one slot's
   # lbf falls below greedy_lbf_cutoff (slot-invariant, single-round verdict).

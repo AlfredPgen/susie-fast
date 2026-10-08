@@ -46,6 +46,7 @@ LinkingTo:
     cpp11armadillo
 Suggests:
     curl,
+    parallel,
     pkgload,
     rprojroot,
     testthat,

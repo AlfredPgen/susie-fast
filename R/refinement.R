@@ -125,7 +125,8 @@ run_refine <- function(model, data, params) {
       return(list(model = model, converged = TRUE))
 
     candidates <- list()
-    for (cs_idx in seq_along(model$sets$cs)) {
+    fits <- fast_refine_parallel(model, data, params, pw_s)  # NULL: serial loop
+    for (cs_idx in if (is.null(fits)) seq_along(model$sets$cs)) {
       # Zero out prior weights for variables in this CS
       pw_cs <- pw_s
       pw_cs[model$sets$cs[[cs_idx]]] <- 0
@@ -153,6 +154,7 @@ run_refine <- function(model, data, params) {
       p2$refine        <- FALSE
       candidates <- c(candidates, list(susie_workhorse(data, p2)))
     }
+    if (!is.null(fits)) candidates <- fits
 
     if (length(candidates) == 0)
       return(list(model = model, converged = TRUE))

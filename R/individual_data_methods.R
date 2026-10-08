@@ -544,6 +544,8 @@ get_zscore.individual <- function(data, params, model, ...) {
     X <- X[, 1:(ncol(X) - 1)]
   }
 
+  if (!is.null(data$fast_zscore_memo))
+    return(fast_zscore_memo(data, params, X, calc_z(X, data$y, center = params$intercept, scale = params$standardize)))
   return(calc_z(X, data$y, center = params$intercept, scale = params$standardize))
 }
 
