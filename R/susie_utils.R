@@ -1750,7 +1750,7 @@ update_ash_variance_components <- function(data, model, params) {
   if (is.null(model$force_exposed_iter))     model$force_exposed_iter <- rep(0L, p)
   if (is.null(model$second_chance_used))     model$second_chance_used <- rep(FALSE, p)
 
-  xcorr_result <- get_xcorr(data)
+  xcorr_result <- fast_get_xcorr(data, model)
   Xcorr <- xcorr_result$Xcorr
   data <- xcorr_result$data
 
@@ -1857,7 +1857,7 @@ update_ash_variance_components <- function(data, model, params) {
 
   # Mask: PIP-based union, with per-position persistence
   pip_protected    <- susie_get_pip(alpha_protected)
-  LD_adj           <- abs(Xcorr) > ld_threshold
+  LD_adj           <- fast_ld_adj(Xcorr, ld_threshold, model)
   neighborhood_pip <- as.vector(LD_adj %*% pip_protected)
   want_masked <- (neighborhood_pip > neighborhood_pip_threshold) |
                  (pip_protected    > pip_threshold) |
@@ -1988,7 +1988,7 @@ update_ash_variance_components_filter_archived <- function(data, model, params) 
   is_individual <- inherits(data, "individual")
 
   # Step 1: Get correlation matrix (cached after first call)
-  xcorr_result <- get_xcorr(data)
+  xcorr_result <- fast_get_xcorr(data, model)
   Xcorr <- xcorr_result$Xcorr
   data <- xcorr_result$data
 
@@ -2313,7 +2313,7 @@ compute_ash_masking <- function(Xcorr, model, params) {
   # =========================================================================
   pip_protected <- susie_get_pip(alpha_protected)
 
-  LD_adj <- abs(Xcorr) > signal_separation_ld
+  LD_adj <- fast_ld_adj(Xcorr, signal_separation_ld, model)
   neighborhood_pip <- as.vector(LD_adj %*% pip_protected)
   want_masked <- (neighborhood_pip > neighborhood_pip_threshold) |
                  (pip_protected > direct_pip_threshold) |
@@ -2421,7 +2421,7 @@ compute_ash_from_summary_stats <- function(data, b_confident, model, params, con
   bhat <- Xtr / XtXdiag
   # Use n-2 df to match PVE adjustment in mr.ash.rss
   shat <- sqrt(pmax(0, (rtr - Xtr^2 / XtXdiag) / ((data$n - 2) * XtXdiag)))
-  R_mat <- safe_cov2cor(data$XtX)
+  R_mat <- fast_ash_R(data, model)
   var_r <- rtr / (data$n - 1)
 
   # Default prior grid (matching mr.ash defaults)
