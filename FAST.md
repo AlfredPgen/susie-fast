@@ -3,7 +3,7 @@
 **This repository is a fork of [stephenslab/susieR](https://github.com/stephenslab/susieR)**,
 based on upstream commit
 [`8e56a8e`](https://github.com/stephenslab/susieR/commit/8e56a8e038e989856d106d9ca5175cc664fea9d2)
-(susieR 0.16.6); fork version 0.16.6.1. The SuSiE methods, the code and the credit belong to the
+(susieR 0.16.6); fork version 0.16.6.2. The SuSiE methods, the code and the credit belong to the
 susieR authors (Wang, Zou, McCreight, Zhang, Denault, Carbonetto, Stephens).
 Please cite their papers, not this fork.
 
@@ -60,9 +60,40 @@ In detail:
 5. **Constructor.** XtX is standardised in one pass instead of three full-size
    copies (`t((1 / csd) * XtX) / csd`).
 
-The new code is in [`R/susie_fast.R`](R/susie_fast.R) and
-[`src/susie_fast.cpp`](src/susie_fast.cpp). The upstream files have one-line
-changes at the call sites.
+Round 2 (0.16.6.2) added, after an audit in which every proposed change was
+checked by two independent reviewers (one for exactness, one for whether the
+gain is real):
+
+6. **Repeated single-effect regressions.** Consecutive null effects see the
+   same residuals, so their SER (and, for individual data, the X'r product)
+   is the same. A whole SER is reused when every input it reads is
+   bit-for-bit the same as the previous one's.
+7. **Fewer logarithms in the SER kernel.** In the standardised `susie_rss`
+   path the prior-variance terms take very few distinct values across
+   variants; `log(1 + V/s)` is computed once per distinct value. The final
+   SER step for summary data (Bayes factors, posterior moments, KL) runs in
+   C++ with the same operation order.
+8. **Products without R's NaN scan.** Before each `%*%`, R scans the whole
+   matrix for NaN/Inf, which costs about as much as the product. The matrix
+   is now scanned once per fit and the same BLAS routine is called directly
+   with the same arguments. With R's reference BLAS, C++ kernels that do the
+   reference routine's operations in the same order for every output element
+   are used instead (self-tested per session, and the first product of each
+   fit is checked against R's own result).
+9. **Constructors.** One pass checks XtX for symmetry and non-finite values;
+   a correlation matrix with unit diagonal is not rescaled; the original-scale
+   (`bhat`, `shat`, `var_y`) path builds its XtX in one pass; constant-column
+   screening for individual data reads each column once.
+10. **Post-processing.** See below.
+11. **Other paths.** `unmappable_effects = "ash"` keeps its correlation
+    matrices for the whole fit and uses a faster `mr.ash.rss` kernel;
+    `unmappable_effects = "inf"` skips dead and repeated eigenspace products;
+    `susie_rss_lambda` uses the round-1 techniques and reuses its p^3
+    product across refine fits.
+
+The new code is in `R/susie_fast*.R` and `src/susie_fast.cpp`,
+`src/fast_*.cpp`. The upstream files have one- or two-line changes at the
+call sites.
 
 ## Modes
 
@@ -80,9 +111,18 @@ options(susieR.fast = "off")    # upstream code paths
   upstream, ELBO included.
 - **off**: the upstream code.
 
-The fast paths apply to the standard `ss` (`susie_rss`, `susie_ss`) and
-`individual` (`susie`) data classes. Other classes (`susie_rss_lambda`,
-multi-panel, and downstream packages' classes) use the upstream code.
+The fast paths apply to the standard `ss` (`susie_rss`, `susie_ss`),
+`individual` (`susie`) and `rss_lambda` (`susie_rss_lambda`) data classes.
+Other classes (multi-panel R lists and downstream packages' classes) use the
+upstream code.
+
+Two opt-in options, both with bit-identical results:
+
+- `options(susieR.threads = n)`: threads for the matrix-vector kernels used
+  with R's reference BLAS (default 1). Other BLAS libraries (OpenBLAS, MKL)
+  use their own threading. Keep 1 when you run regions in parallel.
+- `options(susieR.refine_cores = k)`: fit the candidates of each refine step
+  in k forked processes (Linux/macOS; default 1). See below.
 
 ### Post-processing ([`R/susie_fast_post.R`](R/susie_fast_post.R))
 
@@ -116,7 +156,15 @@ with the same toolchain, on two platforms: Windows 11 (R 4.3.2, Rtools43,
 R's reference BLAS) and Linux (Ubuntu 26.04 under WSL2, conda-forge R 4.4.3,
 GCC, OpenBLAS 0.3.34, one thread).
 
-- **35 configurations**: `susie_rss` (defaults, residual variance estimated,
+- **Round 2: 249 configurations** (the 35 below plus configurations for
+  every changed path and its edge cases: NA/Inf inputs, null weight, prior
+  weights, names, sparse matrices, model_init, strong signals, weak signals
+  with dropped credible sets, ash, inf, rss_lambda, constructors,
+  threads, parallel refine). On both platforms: `exact` bit-identical in all
+  249 (`off` too, on Windows); `full` identical except `fit$elbo` in at most
+  15 cases (largest relative difference 1.8e-15). Five deliberate error-path
+  configurations stop with the same error in both builds.
+- **Round 1: 35 configurations**: `susie_rss` (defaults, residual variance estimated,
   L = 20 with prior weights, null weight, EM and simple prior methods, fixed
   prior, refine, PIP convergence, no n, bhat/shat input, greedy L, null
   threshold, track_fit, SuSiE-inf, SuSiE-ash, R mismatch, slot prior),
@@ -127,54 +175,45 @@ GCC, OpenBLAS 0.3.34, one thread).
   fit; `off` too, checked on Windows); `full` bit-identical in all 35 except
   `fit$elbo` in 5 (Windows) or 7 (Linux) cases, largest relative difference
   1.8e-15. Tables in [`fast/results`](fast/results).
-- **The package's own test suite** (1,240 tests): same result as upstream
+- **The package's own test suite** (1,289 tests in round 2, including the
+  new fast-path tests): same result as upstream
   (8 failed expectations and 1 error in both builds on this machine, all
   pre-existing: 6 plotting tests that need ImageMagick and 2 R_mismatch tests
   that disagree with current upstream code).
-- **New tests** in [`tests/testthat/test_susie_fast.R`](tests/testthat/test_susie_fast.R)
-  compare the three modes on every run (pass on both platforms).
+- **New tests** in `tests/testthat/test_susie_fast*.R` compare the fast
+  paths with the upstream code paths on every run.
 
 ## Benchmarks
 
-Simulated regions with realistic LD (n = 3,000 to 5,000 samples, p = 1,000 to
-6,000 variants, 3 causal variants), L = 10 unless stated. Upstream and the fork
-were run alternately, 5 rounds (3 for L = 20); speed-up is the median of the
-paired per-round ratios. The machine had other load, so absolute times are
-noisy; the pairing absorbs most of it.
+Simulated regions with realistic LD (n = 3,000 samples, p = 1,000 or 3,000
+variants, 3 causal variants), L = 10 unless stated. Upstream and the fork
+were run alternately, 3 rounds; speed-up is the median of the paired
+per-round ratios, one thread. The machine had other load, so absolute times
+are noisy; the pairing absorbs most of it. Round-1 figures (0.16.6.1) are in
+[`fast/results`](fast/results).
 
-Windows 11, R 4.3.2, reference BLAS, one thread (5 rounds):
+| fit | Linux, OpenBLAS: upstream | fork | speed-up | Windows, reference BLAS: upstream | fork | speed-up |
+|---|---|---|---|---|---|---|
+| `susie_rss`, p = 1,000 | 0.54 s | 0.20 s | 2.6x | 0.98 s | 0.37 s | 2.6x |
+| `susie_rss`, p = 3,000 | 2.06 s | 0.57 s | 3.6x | 3.26 s | 0.67 s | 4.6x |
+| `susie_rss`, p = 3,000, L = 20 | 3.37 s | 0.77 s | 4.4x | | | |
+| `susie_rss`, p = 3,000, residual variance estimated | 2.03 s | 0.64 s | 3.2x | | | |
+| `susie_rss`, p = 1,000, refine | 2.42 s | 0.46 s | 5.2x | 4.30 s | 0.83 s | 5.0x |
+| `susie`, n = 3,000, p = 1,000 | 1.62 s | 0.42 s | 3.6x | 3.86 s | 0.97 s | 4.0x |
+| `susie`, n = 3,000, p = 3,000 | 3.03 s | 0.77 s | 3.9x | 6.99 s | 1.28 s | 5.5x |
+| `susie`, n = 3,000, p = 1,000, refine | 7.03 s | 1.29 s | 5.4x | | | |
 
-| fit | upstream | fork | speed-up |
-|---|---|---|---|
-| `susie_rss`, p = 1,000 | 0.75 s | 0.40 s | 1.9x |
-| `susie_rss`, p = 3,000 | 2.63 s | 1.02 s | 2.8x |
-| `susie_rss`, p = 6,000 | 8.94 s | 2.98 s | 3.2x |
-| `susie_rss`, p = 3,000, L = 20 | 8.31 s | 2.69 s | 2.8x |
-| `susie_rss`, p = 3,000, residual variance estimated | 3.52 s | 1.50 s | 2.2x |
-| `susie_rss`, p = 1,000, refine | 3.73 s | 1.69 s | 2.1x |
-| `susie`, n = 3,000, p = 1,000 | 3.91 s | 1.96 s | 2.2x |
-| `susie`, n = 3,000, p = 3,000 | 6.98 s | 3.92 s | 1.9x |
-| `susie`, n = 3,000, p = 1,000, refine | 17.22 s | 8.22 s | 2.3x |
-
-Linux (WSL2), R 4.4.3, OpenBLAS 0.3.34, one thread (3 rounds):
-
-| fit | upstream | fork | speed-up |
-|---|---|---|---|
-| `susie_rss`, p = 1,000 | 0.73 s | 0.32 s | 2.2x |
-| `susie_rss`, p = 3,000 | 4.15 s | 1.29 s | 2.7x |
-| `susie_rss`, p = 6,000 | 9.23 s | 3.27 s | 2.4x |
-| `susie_rss`, p = 3,000, L = 20 | 4.39 s | 1.65 s | 2.9x |
-| `susie_rss`, p = 3,000, residual variance estimated | 2.71 s | 1.71 s | 1.6x |
-| `susie`, n = 3,000, p = 1,000 | 2.22 s | 1.18 s | 1.9x |
-| `susie`, n = 3,000, p = 3,000 | 5.29 s | 2.85 s | 1.9x |
-
-The gain grows with p (the products dominate) and with the share of null
-effects (L larger than the number of signals).
+Round 1 alone gave 1.6-3.2x on the same kinds of fits. The work packages
+for the other paths measured, against upstream: SuSiE-ash 1.5-2.1x,
+SuSiE-inf 1.1-1.4x (the eigendecomposition is unchanged), `susie_rss_lambda`
+1.1-2.3x (more with refine), and opt-in parallel refine a further 1.1-1.5x
+with 3 cores.
 
 ## Reproducing
 
 [`fast/`](fast) holds the tools: `make_data.R` (simulated regions),
-`run_suite.R` + `compare.R` (the 35-configuration comparison),
+`run_suite.R` + `compare.R` (the configuration comparison; the configurations
+are in `fast/cases/*.R`),
 `bench_one.R` + `bench.sh` + `summarize_bench.R` (alternating benchmark) and
 `run_tests.R` (the package test suite against an installed library). Install
 upstream into one R library and this fork into another, then for example:

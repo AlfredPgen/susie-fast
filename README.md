@@ -1,8 +1,8 @@
 # susieR
 
 > **This is susie-fast, a fork of [stephenslab/susieR](https://github.com/stephenslab/susieR).**
-> It is upstream susieR 0.16.6 (fork version 0.16.6.1) with faster computation and bit-identical fits
-> (1.6-3.2x faster in the benchmarks in FAST.md). All methods and credit belong to
+> It is upstream susieR 0.16.6 (fork version 0.16.6.2) with faster computation and bit-identical fits
+> (2.6-5.5x faster in the benchmarks in FAST.md). All methods and credit belong to
 > the susieR authors; please cite their papers. What changed, how it was
 > verified, benchmarks and install: [FAST.md](FAST.md).
 > Install with `remotes::install_github("AlfredPgen/susie-fast")`.
