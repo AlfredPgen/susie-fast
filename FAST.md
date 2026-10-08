@@ -95,7 +95,7 @@ multi-panel, and downstream packages' classes) use the upstream code.
   Applies when `median_abs_corr` is unset and `squared = FALSE`.
 - **z-score memo.** With `compute_univariate_zscore = TRUE`, the univariate
   z-scores are computed once per top-level fit instead of once per refine
-  candidate or greedy round.
+  candidate.
 - **Parallel refinement (opt-in).** `options(susieR.refine_cores = k)` with
   k >= 2 fits the refine candidates of each step in k forked processes
   (Linux/macOS; the serial loop elsewhere, inside a forked worker, or with
@@ -103,8 +103,11 @@ multi-panel, and downstream packages' classes) use the upstream code.
   are those of the serial loop: conditions are replayed in serial order,
   and if any candidate used the RNG (the X-path purity subsample) the step
   is redone serially. Use it with a single-threaded BLAS or OpenBLAS
-  (pthreads); Apple's Accelerate is excluded. MKL without CNR is not
-  run-to-run reproducible even serially.
+  (pthreads): a BLAS or other code that started an OpenMP thread pool in
+  the parent can hang the forked children. Apple's Accelerate, MKL and
+  OpenMP builds are recognised by the BLAS library name and run serially;
+  a BLAS whose name does not show its threading is not detected. MKL
+  without CNR is not run-to-run reproducible even serially.
 
 ## Verification
 

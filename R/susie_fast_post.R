@@ -9,7 +9,7 @@
 #      certified as dropped and its purity row, which never reaches the
 #      output, is not computed. In every other case get_purity runs as before.
 #   2. z-score memo. With compute_univariate_zscore = TRUE every workhorse
-#      fit (main fit, refine candidates, greedy rounds) recomputes the same
+#      fit (main fit and refine candidates) recomputes the same
 #      univariate z-scores from the same X and y. They are computed once per
 #      top-level fit.
 #   3. Parallel refine candidates (opt-in, options(susieR.refine_cores = k),
@@ -51,6 +51,8 @@ fast_purity_drop <- function(pos, X, Xcorr, squared, n, min_abs_corr,
       max(pos) > ncol(X) || !fast_cora_ok())
     return(NULL)
   n <- resolve_n_purity(n, nrow(X), length(pos))
+  # a 1-column subsample has no pairs: get_purity warns and stops
+  if (n < 2) return(NULL)
   seed <- NULL
   if (length(pos) > n) {
     seed <- get0(".Random.seed", envir = globalenv(), inherits = FALSE)
@@ -130,6 +132,7 @@ fast_purity_drop_X <- function(pos, X, thr) {
   gam <- n * u / (1 - n * u)
   amat <- abs(mat)
   m <- nrow(mat)
+  if (m < 2) return(NULL)
   for (r in unique(c(1L, m %/% 2L, m))) {
     dd <- drop(mat %*% mat[r, ])
     A  <- drop(amat %*% amat[r, ])
@@ -186,7 +189,7 @@ fast_cora_ok <- local({
 
 # Called at the top of susie_workhorse. The outermost call attaches a memo
 # environment to its (local) data object; nested workhorse calls (refine
-# candidates, greedy rounds) receive that data object and share the memo.
+# candidates) receive that data object and share the memo.
 #' @keywords internal
 fast_zscore_memo_attach <- function(data, params) {
   if (!identical(class(data), "individual") ||
@@ -272,7 +275,8 @@ fast_refine_candidate <- function(model, data, params, pw_s, cs_idx) {
 # discarded and the serial loop runs, from the parent's untouched RNG
 # state. Messages and warnings are recorded in the children and replayed
 # here in the serial order. The BLAS must be fork-safe (single-threaded,
-# or OpenBLAS with pthreads); Apple's Accelerate is excluded.
+# or OpenBLAS with pthreads); Apple's Accelerate, MKL and OpenMP builds,
+# whose thread pools can hang in a forked child, are excluded by name.
 #' @keywords internal
 fast_refine_parallel <- function(model, data, params, pw_s) {
   cores <- getOption("susieR.refine_cores", 1)
@@ -282,7 +286,8 @@ fast_refine_parallel <- function(model, data, params, pw_s) {
       length(class(data)) != 1 ||
       fast_rng_user(get0(".Random.seed", envir = globalenv(), inherits = FALSE)) ||
       fast_mode() == "off" ||
-      grepl("Accelerate|vecLib", extSoftVersion()[["BLAS"]]) ||
+      grepl("Accelerate|vecLib|mkl|openmp|openblaso", extSoftVersion()[["BLAS"]],
+            ignore.case = TRUE) ||
       !requireNamespace("parallel", quietly = TRUE) ||
       isTRUE(get("isChild", envir = asNamespace("parallel"))()))
     return(NULL)

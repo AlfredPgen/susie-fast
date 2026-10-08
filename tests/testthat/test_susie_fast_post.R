@@ -155,6 +155,48 @@ test_that("the purity early exit preserves upstream errors", {
   expect_same_run(function() susie_get_cs(res, Xcorr = diag(p)))
 })
 
+test_that("n_purity below 2 keeps upstream's warning and error", {
+  p <- 6
+  res <- cs_res(list(1:p), p)
+  set.seed(3)
+  X <- matrix(rnorm(40 * p), 40, p)
+  for (np in c(1, 1.5)) {
+    r <- expect_same_run(function() susie_get_cs(res, X = X, n_purity = np))
+    expect_match(r$value$error, "NaN/NA")
+    expect_true(any(vapply(r$conds, function(c) c[[1]] == "warning", TRUE)))
+    expect_same_run(function() susie_get_cs(res, X = Matrix::Matrix(X, sparse = TRUE),
+                                            n_purity = np))
+  }
+  d <- post_test_data(b = c(0.12, 0.1))
+  r <- expect_same_run(function() susie(d$X, d$y, n_purity = 1))
+  expect_match(r$value$error, "NaN/NA")
+  expect_same_run(function() susie_rss(d$z, X = d$X[1:60, ], n = d$n, n_purity = 1))
+})
+
+test_that("the X-path certificate fires and restores the RNG when it cannot", {
+  ns <- asNamespace("susieR")
+  skip_if_not(ns$fast_cora_ok())
+  d <- post_test_data(b = c(0.12, 0.1))
+  ff <- function() susie(d$X, d$y)
+  expect_gt(count_hits("fast_purity_drop", post_run(ff, "exact")), 0)
+  # highly correlated columns: the subsample is drawn, no pair is below
+  # the threshold, and get_purity must draw the same subsample again
+  set.seed(11)
+  base <- rnorm(50)
+  X <- sapply(1:30, function(j) base + rnorm(50, sd = 0.1))
+  res <- cs_res(list(1:20), 30)
+  get7 <- function() susie_get_cs(res, X = X, n_purity = 7)
+  r <- expect_same_run(get7)
+  expect_length(r$value$cs, 1)
+  expect_identical(count_hits("fast_purity_drop", post_run(get7, "exact")), 0L)
+  old <- options(susieR.fast = "exact")
+  on.exit(options(old))
+  set.seed(3)
+  s0 <- .Random.seed
+  expect_null(ns$fast_purity_drop(1:20, X, NULL, FALSE, 7, 0.5, NULL))
+  expect_identical(.Random.seed, s0)
+})
+
 test_that("a certified drop always has upstream min |corr| below the threshold", {
   ns <- asNamespace("susieR")
   old <- options(susieR.fast = "exact")
@@ -216,8 +258,6 @@ test_that("z-scores are computed once per fit with identical results", {
   # refine: once instead of once per fit
   expect_gt(n[1, 1], 1L)
   expect_equal(n[1, 2], 1L)
-  # greedy rounds share the z-scores too
-  expect_equal(n[3, 2], 1L)
 })
 
 test_that("the z-score memo checks X and y on every lookup", {
@@ -259,7 +299,8 @@ test_that("parallel refine is opt-in and gives the serial fits", {
     function() susie(d$X, d$y, refine = TRUE, compute_univariate_zscore = TRUE),
     function() susie(d$X, d$y, refine = TRUE, n_purity = 5),
     function() susie(d$X, d$y, refine = TRUE, max_iter = 3),
-    function() susie(d$X, d$y, refine = TRUE, null_weight = 0.1))
+    function() susie(d$X, d$y, refine = TRUE, null_weight = 0.1),
+    function() susie_rss_lambda(d$z, d$R, n = d$n, lambda = 0.05, refine = TRUE))
   old <- options(susieR.refine_cores = 2)
   on.exit(options(old))
   if (.Platform$OS.type != "unix") {
@@ -274,6 +315,8 @@ test_that("parallel refine is opt-in and gives the serial fits", {
       expect_identical(out, ref)
     }
   }
+  # the rest needs fork(); elsewhere both runs are serial
+  skip_if_not(.Platform$OS.type == "unix")
   # serial fast run equals the parallel fast run
   for (fun in cases) {
     options(susieR.refine_cores = 1)
@@ -282,7 +325,21 @@ test_that("parallel refine is opt-in and gives the serial fits", {
     b <- post_run(fun, "exact")
     expect_identical(a, b)
   }
-  # on Linux/macOS the candidates really ran in forked processes
-  if (.Platform$OS.type == "unix")
-    expect_gt(count_hits("fast_refine_parallel", post_run(cases[[1]], "exact")), 0)
+  # the candidates really ran in forked processes
+  expect_gt(count_hits("fast_refine_parallel", post_run(cases[[1]], "exact")), 0)
+  expect_gt(count_hits("fast_refine_parallel", post_run(cases[[7]], "exact")), 0)
+  # a candidate that fails in a child sends the step to the serial loop
+  f <- ns$fast_refine_candidate
+  unlockBinding("fast_refine_candidate", ns)
+  assign("fast_refine_candidate", function(...) {
+    if (isTRUE(parallel:::isChild())) stop("child failure")
+    f(...)
+  }, ns)
+  on.exit({
+    assign("fast_refine_candidate", f, ns)
+    lockBinding("fast_refine_candidate", ns)
+  }, add = TRUE)
+  options(susieR.refine_cores = 2)
+  expect_identical(count_hits("fast_refine_parallel", post_run(cases[[2]], "exact")), 0L)
+  expect_identical(post_run(cases[[2]], "exact"), post_run(cases[[2]], "off"))
 })

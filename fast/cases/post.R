@@ -45,6 +45,9 @@ cases <- c(cases, list(
   post_ind_weak_mac = function() susie(ds$X, post_w2, min_abs_corr = 0.05),
   post_ind_constcol = function() susie(post_Xc, post_w2),
   post_ind_ref_np   = function() susie(ds$X, ds$y, refine = TRUE, n_purity = 50),
+  post_ind_np1      = function() susie(ds$X, post_w2, n_purity = 1),    # upstream error
+  post_ind_np1_5    = function() susie(ds$X, post_w2, n_purity = 1.5),
+  post_rss_lr_np1   = function() susie_rss(post_zw1, X = d1$X[1:600, ], n = d1$n, n_purity = 1),
   post_ind_p1000_wk = function() susie(d1$X, post_w1),
   # z-score memo
   post_z_refine     = function() susie(ds$X, ds$y, refine = TRUE, compute_univariate_zscore = TRUE),
@@ -57,6 +60,7 @@ cases <- c(cases, list(
   # parallel refine (opt-in; candidates in forked processes on Linux/macOS)
   post_par_rss      = function() post_cores(susie_rss(d1$z, d1$R, n = d1$n, refine = TRUE)),
   post_par_rss_weak = function() post_cores(susie_rss(post_zw1, d1$R, n = d1$n, L = 15, refine = TRUE)),
+  post_par_rss_lam  = function() post_cores(susie_rss_lambda(d1$z, d1$R, n = d1$n, lambda = 0.05, refine = TRUE)),
   post_par_ss       = function() post_cores(susie_ss(ss$XtX, ss$Xty, ss$yty, ss$n, refine = TRUE)),
   post_par_ind      = function() post_cores(susie(ds$X, post_s3, refine = TRUE)),
   post_par_ind_z    = function() post_cores(susie(ds$X, post_s3, refine = TRUE, compute_univariate_zscore = TRUE)),
