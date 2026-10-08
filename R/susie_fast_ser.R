@@ -133,18 +133,18 @@ fast_own_method <- function(generic, cls) {
   FALSE
 }
 
-# compute_Xty(data$X, y), reusing the previous product when X and y are
+# fast_Xty(model, data$X, y), reusing the previous product when X and y are
 # unchanged (consecutive null effects give the same residuals).
 #' @keywords internal
-fast_Xty <- function(data, model, y) {
+fast_Xty_memo <- function(data, model, y) {
   cache <- model$runtime$fast_cache
   if (is.null(cache))
-    return(compute_Xty(data$X, y))
+    return(fast_Xty(model, data$X, y))
   if (!is.null(cache$xty_v) &&
       identical(cache$xty_X, data$X, num.eq = FALSE) &&
       identical(cache$xty_y, y, num.eq = FALSE))
     return(cache$xty_v)
-  v <- compute_Xty(data$X, y)
+  v <- fast_Xty(model, data$X, y)
   cache$xty_X <- data$X
   cache$xty_y <- y
   cache$xty_v <- v

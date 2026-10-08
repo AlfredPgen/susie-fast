@@ -78,7 +78,7 @@ initialize_susie_model.ss <- function(data, params, var_y, ...) {
 # Initialize fitted values
 #' @keywords internal
 initialize_fitted.ss <- function(data, mat_init) {
-  return(list(XtXr = compute_Rv(data, colSums(mat_init$alpha * mat_init$mu))))
+  return(list(XtXr = fast_init_Rv(data, colSums(mat_init$alpha * mat_init$mu))))
 }
 
 # Validate Prior Variance
@@ -144,7 +144,7 @@ compute_residuals.ss <- function(data, params, model, l, ...) {
     model$residual_variance <- 1   # Already incorporated in Omega
 
     # R inflation uses standard (non-Omega) quantities
-    XtXr_without_l <- compute_Rv(data, b_minus_l)
+    XtXr_without_l <- fast_Rv(model, data, b_minus_l)
     r <- data$Xty - XtXr_without_l
     infl_state <- compute_shat2_inflation(data, model, XtXr_without_l,
                                           b_minus_l, r)
@@ -181,7 +181,7 @@ compute_residuals.ss <- function(data, params, model, l, ...) {
   if (is_ash && !is.null(model$theta)) {
     XtX_theta <- if (!is.null(model$XtX_theta))
                    model$XtX_theta
-                 else compute_Rv(data, model$theta)
+                 else fast_Rv(model, data, model$theta)
     b_for_infl    <- b_minus_l + model$theta
     XtXr_for_infl <- XtXr_without_l + XtX_theta
   } else {
@@ -326,7 +326,7 @@ get_ER2.ss <- function(data, model) {
     R_betabar    <- colSums(sw * RB)
   } else {
     per_slot_XB2 <- rowSums(compute_BR(data, B) * B)              # bbar_l' R bbar_l
-    R_betabar    <- compute_Rv(data, betabar)
+    R_betabar    <- fast_Rv(model, data, betabar)
   }
 
   fast_er2_store(model,
@@ -364,7 +364,7 @@ compute_augmented_eloglik_ss <- function(data, model) {
   am2 <- model$alpha * model$mu2
   betabar  <- colSums(sw * am)
 
-  res_mean <- data$Xty - compute_Rv(data, betabar)
+  res_mean <- data$Xty - fast_Rv(model, data, betabar)
 
   XtX <- if (!is.null(data$XtX)) data$XtX else crossprod(data$X)
   XtX_sq <- XtX * XtX
@@ -453,7 +453,7 @@ update_fitted_values.ss <- function(data, params, model, l, ...) {
   if (params$unmappable_effects == "inf") {
     # SuSiE-inf: include theta in fitted values
     sw <- if (!is.null(model$slot_weights)) model$slot_weights else rep(1, nrow(model$alpha))
-    model$XtXr <- as.vector(compute_Rv(data, colSums(sw * model$alpha * model$mu) + model$theta))
+    model$XtXr <- as.vector(fast_Rv(model, data, colSums(sw * model$alpha * model$mu) + model$theta))
   } else {
     # Standard SuSiE and SuSiE-ash: sparse component only
     model$XtXr <- model$fitted_without_l + sw_l * as.vector(fast_Rv_l(data, model, l, model$alpha[l, ] * model$mu[l, ]))
@@ -509,7 +509,7 @@ update_derived_quantities.ss <- function(data, params, model) {
     model$XtOmegay          <- data$eigen_vectors %*% (data$VtXty / omega_res$omega_var)
     # Update fitted values to include theta
     b          <- colSums(model$alpha * model$mu)
-    model$XtXr <- compute_Rv(data, b + model$theta)
+    model$XtXr <- fast_Rv(model, data, b + model$theta)
     return(model)
   } else {
     return(update_derived_quantities.default(data, params, model))
